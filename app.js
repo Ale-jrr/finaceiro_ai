@@ -1,4 +1,4 @@
-const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+ï»¿const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 if (localStorage.getItem('pulse_auth') !== '1') location.href = 'login.html';
 const $ = (id) => document.getElementById(id);
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -87,7 +87,7 @@ function renderTable() {
   body.innerHTML = '';
   filteredTxs().slice(0, 100).forEach(tx => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${tx.description}<br><small>${tx.category}${tx.installment ? ` • ${tx.installment}` : ''}</small></td><td>${new Date(tx.date).toLocaleDateString('pt-BR')}</td><td style="font-weight:700;color:${tx.type === 'saida' ? '#fb7185' : '#34d399'}">${tx.type === 'saida' ? '-' : '+'} ${money.format(tx.amount)}</td><td><button class="ghost small del" data-id="${tx.id}">Excluir</button></td>`;
+    tr.innerHTML = `<td>${tx.description}<br><small>${tx.category}${tx.installment ? ` â€¢ ${tx.installment}` : ''}</small></td><td>${new Date(tx.date).toLocaleDateString('pt-BR')}</td><td style="font-weight:700;color:${tx.type === 'saida' ? '#fb7185' : '#34d399'}">${tx.type === 'saida' ? '-' : '+'} ${money.format(tx.amount)}</td><td><button class="ghost small del" data-id="${tx.id}">Excluir</button></td>`;
     body.appendChild(tr);
   });
   document.querySelectorAll('.del').forEach(b => b.onclick = () => { state.txs = state.txs.filter(t => t.id !== b.dataset.id); renderAll(); });
@@ -110,7 +110,7 @@ function renderGoals() {
 
 function renderBudgets() {
   const box = $('budgetList'); box.innerHTML = '';
-  if (!state.budgets.length) { box.innerHTML = '<p class="legend">Sem orçamentos.</p>'; return; }
+  if (!state.budgets.length) { box.innerHTML = '<p class="legend">Sem orÃ§amentos.</p>'; return; }
   const m = monthKey(todayIso());
   state.budgets.forEach(b => {
     const spent = state.txs.filter(t => t.type === 'saida' && t.category.toLowerCase() === b.category.toLowerCase() && monthKey(t.date) === m).reduce((a, t) => a + t.amount, 0);
@@ -198,7 +198,7 @@ function restoreJson(file) {
       state.streak = d.streak || 0;
       state.achievements = d.achievements || [];
       renderAll();
-    } catch { alert('Backup inválido'); }
+    } catch { alert('Backup invÃ¡lido'); }
   };
   r.readAsText(file);
 }
@@ -209,7 +209,7 @@ function renderAll() {
   $('entradas').textContent = money.format(s.entradas);
   $('saidas').textContent = money.format(s.saidas);
   $('eficiencia').textContent = `${s.eficiencia.toFixed(1)}%`;
-  $('insightText').textContent = s.saidas > s.entradas ? 'Atenção: saídas acima das entradas.' : 'Fluxo financeiro sob controle.';
+  $('insightText').textContent = s.saidas > s.entradas ? 'AtenÃ§Ã£o: saÃ­das acima das entradas.' : 'Fluxo financeiro sob controle.';
   const level = Math.floor(Math.sqrt(state.xp / 100)) + 1;
   $('userEmail').textContent = localStorage.getItem('pulse_user') || 'Usuario';
   renderTable();
@@ -294,7 +294,7 @@ $('autoGoal').onclick = () => {
 
 ['searchTx', 'filterType', 'filterCategory', 'filterFrom', 'filterTo'].forEach(id => $(id).addEventListener('input', renderTable));
 $('insightBtn').onclick = renderAll;
-$('clearAll').onclick = () => { if (confirm('Limpar todas as transações?')) { state.txs = []; state.xp = 0; state.streak = 0; renderAll(); } };
+$('clearAll').onclick = () => { if (confirm('Limpar todas as transaÃ§Ãµes?')) { state.txs = []; state.xp = 0; state.streak = 0; renderAll(); } };
 $('exportCsv').onclick = exportCsv;
 $('importCsv').onchange = (e) => { const f = e.target.files[0]; if (f) importCsv(f); e.target.value = ''; };
 $('backupBtn').onclick = backupJson;
@@ -302,3 +302,4 @@ $('restoreFile').onchange = (e) => { const f = e.target.files[0]; if (f) restore
 $('logoutBtn').onclick = () => { localStorage.removeItem('pulse_auth'); location.href = 'login.html'; };
 
 renderAll();
+

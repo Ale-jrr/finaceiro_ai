@@ -1,4 +1,4 @@
-<!doctype html>
+ï»¿<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -28,7 +28,7 @@
       <section id="dashboardPage">
         <section class="hero glass fade-up">
           <h1>Seu dinheiro em movimento, com clareza total.</h1>
-          <p id="objectiveText">Registre entradas e saídas, acompanhe metas e veja tendências em tempo real.</p>
+          <p id="objectiveText">Registre entradas e saÃ­das, acompanhe metas e veja tendÃªncias em tempo real.</p>
           <div class="row">
             <button id="insightBtn" class="ghost">Gerar insight</button>
             <button id="exportCsv" class="ghost">Exportar CSV</button>
@@ -41,24 +41,24 @@
         <section class="kpis fade-up delay-1">
           <div class="kpi glass"><span>Saldo Atual</span><strong id="saldo">R$ 0,00</strong></div>
           <div class="kpi glass"><span>Total Entradas</span><strong id="entradas">R$ 0,00</strong></div>
-          <div class="kpi glass danger"><span>Total Saídas</span><strong id="saidas">R$ 0,00</strong></div>
-          <div class="kpi glass"><span>Eficiência</span><strong id="eficiencia">0,0%</strong></div>
+          <div class="kpi glass danger"><span>Total SaÃ­das</span><strong id="saidas">R$ 0,00</strong></div>
+          <div class="kpi glass"><span>EficiÃªncia</span><strong id="eficiencia">0,0%</strong></div>
         </section>
 
         <section class="grid-2 fade-up delay-2">
           <div class="glass panel">
             <h2>Status Financeiro (30 dias)</h2>
             <canvas id="chart" width="1000" height="280"></canvas>
-            <p class="legend"><span class="dot"></span> Saldo acumulado diário</p>
+            <p class="legend"><span class="dot"></span> Saldo acumulado diÃ¡rio</p>
           </div>
           <div class="glass panel">
             <h2>Comparativo Mensal</h2>
-            <p class="legend">Mês atual vs mês anterior</p>
+            <p class="legend">MÃªs atual vs mÃªs anterior</p>
             <div class="compare-grid">
               <div><small>Entradas</small><b id="cmpEntradas">R$ 0,00</b></div>
-              <div><small>Saídas</small><b id="cmpSaidas">R$ 0,00</b></div>
+              <div><small>SaÃ­das</small><b id="cmpSaidas">R$ 0,00</b></div>
               <div><small>Saldo</small><b id="cmpSaldo">R$ 0,00</b></div>
-              <div><small>Variação</small><b id="cmpVariacao">0,0%</b></div>
+              <div><small>VariaÃ§Ã£o</small><b id="cmpVariacao">0,0%</b></div>
             </div>
             <p id="insightText" class="legend" style="margin-top:12px"></p>
           </div>
@@ -66,41 +66,41 @@
 
         <section class="grid-2 fade-up delay-3">
           <div class="glass panel">
-            <h2>Nova Transação</h2>
+            <h2>Nova TransaÃ§Ã£o</h2>
             <form id="txForm">
               <div class="type-toggle">
                 <button type="button" data-type="entrada" class="type active">Entrada</button>
-                <button type="button" data-type="saida" class="type">Saída</button>
+                <button type="button" data-type="saida" class="type">SaÃ­da</button>
               </div>
-              <input id="desc" placeholder="Descrição" required />
+              <input id="desc" placeholder="DescriÃ§Ã£o" required />
               <input id="amount" type="number" step="0.01" min="0.01" placeholder="Valor (R$)" required />
               <input id="category" placeholder="Categoria" value="Geral" required />
               <input id="installments" type="number" min="1" value="1" placeholder="Parcelas" />
-              <button class="primary" type="submit">Salvar Transação</button>
+              <button class="primary" type="submit">Salvar TransaÃ§Ã£o</button>
             </form>
           </div>
 
           <div class="glass panel">
             <div class="history-header">
-              <h2>Histórico</h2>
+              <h2>HistÃ³rico</h2>
               <button id="clearAll" class="ghost small">Limpar tudo</button>
             </div>
             <div class="filters">
-              <input id="searchTx" placeholder="Buscar descrição" />
-              <select id="filterType"><option value="">Tipo</option><option value="entrada">Entrada</option><option value="saida">Saída</option></select>
+              <input id="searchTx" placeholder="Buscar descriÃ§Ã£o" />
+              <select id="filterType"><option value="">Tipo</option><option value="entrada">Entrada</option><option value="saida">SaÃ­da</option></select>
               <input id="filterCategory" placeholder="Categoria" />
               <input id="filterFrom" type="date" />
               <input id="filterTo" type="date" />
             </div>
             <table>
-              <thead><tr><th>Descrição</th><th>Data</th><th>Valor</th><th></th></tr></thead>
+              <thead><tr><th>DescriÃ§Ã£o</th><th>Data</th><th>Valor</th><th></th></tr></thead>
               <tbody id="txBody"></tbody>
             </table>
           </div>
         </section>
 
         <section class="glass panel">
-          <h2>Calendário Financeiro</h2>
+          <h2>CalendÃ¡rio Financeiro</h2>
           <div id="calendar" class="calendar"></div>
         </section>
       </section>
@@ -108,7 +108,7 @@
       <section id="planningPage" class="hidden">
         <section class="hero glass fade-up">
           <h1>Planejamentos</h1>
-          <p>Crie metas, orçamentos por categoria e acompanhe progresso.</p>
+          <p>Crie metas, orÃ§amentos por categoria e acompanhe progresso.</p>
         </section>
         <section class="grid-2">
           <div class="glass panel">
@@ -119,21 +119,21 @@
               <input id="goalCurrent" type="number" step="0.01" min="0" placeholder="Valor atual (R$)" value="0" required />
               <button class="primary" type="submit">Criar Meta</button>
             </form>
-            <button id="autoGoal" class="ghost">Gerar meta automática mensal</button>
+            <button id="autoGoal" class="ghost">Gerar meta automÃ¡tica mensal</button>
           </div>
           <div class="glass panel">
-            <h2>Orçamento por Categoria</h2>
+            <h2>OrÃ§amento por Categoria</h2>
             <form id="budgetForm">
               <input id="budgetCategory" placeholder="Categoria" required />
               <input id="budgetLimit" type="number" step="0.01" min="1" placeholder="Limite mensal (R$)" required />
-              <button class="primary" type="submit">Salvar orçamento</button>
+              <button class="primary" type="submit">Salvar orÃ§amento</button>
             </form>
             <div id="budgetList" class="goals-list"></div>
           </div>
         </section>
         <section class="glass panel">
           <h2>Suas Metas</h2>
-          <p class="legend">Ativas: <b id="goalsCount">0</b> • Concluídas: <b id="goalsDone">0</b></p>
+          <p class="legend">Ativas: <b id="goalsCount">0</b> â€¢ ConcluÃ­das: <b id="goalsDone">0</b></p>
           <div id="goalsList" class="goals-list"></div>
         </section>
       </section>
@@ -142,3 +142,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
