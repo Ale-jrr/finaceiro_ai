@@ -200,6 +200,31 @@
           <div id="goalsList" class="goals-list"></div>
         </section>
       </section>
+
+      <section id="usersPage" class="hidden">
+        <section class="hero glass fade-up">
+          <h1>Painel Administrativo</h1>
+          <p>Gerencie contas de acesso da plataforma.</p>
+        </section>
+        <section class="grid-2">
+          <div class="glass panel">
+            <h2>Criar Usuário</h2>
+            <form id="userForm">
+              <input id="userName" placeholder="Nome" required />
+              <input id="userEmail" type="email" placeholder="E-mail" required />
+              <input id="userPassword" type="password" minlength="6" placeholder="Senha" required />
+              <button class="primary" type="submit">Criar Conta</button>
+            </form>
+          </div>
+          <div class="glass panel">
+            <h2>Usuários Cadastrados</h2>
+            <table>
+              <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Ações</th></tr></thead>
+              <tbody id="usersBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

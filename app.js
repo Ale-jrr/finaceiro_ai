@@ -9,6 +9,7 @@ function requireAuth() {
 }
 if (!requireAuth()) throw new Error('unauthorized');
 const ACCOUNTS_KEY = 'pulse_accounts';
+const ADMIN_ONLY_EMAIL = 'alessandro@pulse.local';
 const $ = (id) => document.getElementById(id);
 
 const hasSupabase = Boolean(window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY);
@@ -40,9 +41,13 @@ const setRailCollapsed = (collapsed) => {
   localStorage.setItem('pulse_left_rail_collapsed', collapsed ? '1' : '0');
 };
 const setPage = (page) => {
-  $('dashboardPage').classList.toggle('hidden', page !== 'dashboard');
-  $('movementsPage').classList.toggle('hidden', page !== 'movements');
-  $('planningPage').classList.toggle('hidden', page !== 'planning');
+  const me = currentAccount();
+  const adminOnly = Boolean(me && me.isAdmin && me.email === ADMIN_ONLY_EMAIL);
+  const safePage = adminOnly && page !== 'users' ? 'users' : page;
+  $('dashboardPage').classList.toggle('hidden', safePage !== 'dashboard');
+  $('movementsPage').classList.toggle('hidden', safePage !== 'movements');
+  $('planningPage').classList.toggle('hidden', safePage !== 'planning');
+  if ($('usersPage')) $('usersPage').classList.toggle('hidden', safePage !== 'users');
 };
 
 const state = {
@@ -394,16 +399,24 @@ function renderUsers() {
 
   const me = currentAccount();
   const isAdmin = Boolean(me && me.isAdmin);
+  const adminOnly = Boolean(me && me.isAdmin && me.email === ADMIN_ONLY_EMAIL);
 
   menuLink.classList.toggle('hidden', !isAdmin);
   document.querySelectorAll('.rail-btn[data-page="users"]').forEach((btn) => {
     btn.classList.toggle('hidden', !isAdmin);
+  });
+  document.querySelectorAll('.item[data-page="dashboard"], .item[data-page="movements"], .item[data-page="planning"]').forEach((el) => {
+    el.classList.toggle('hidden', adminOnly);
+  });
+  document.querySelectorAll('.rail-btn[data-page="dashboard"], .rail-btn[data-page="movements"], .rail-btn[data-page="planning"]').forEach((el) => {
+    el.classList.toggle('hidden', adminOnly);
   });
 
   if (!isAdmin) {
     if (!$('usersPage').classList.contains('hidden')) setPage('dashboard');
     return;
   }
+  if (adminOnly) setPage('users');
 
   body.innerHTML = '';
   state.accounts.forEach((acc) => {
