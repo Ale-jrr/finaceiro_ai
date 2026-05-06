@@ -176,7 +176,7 @@ body {
 .left-rail.collapsed .rail-toggle {
   padding: 6px;
 }
-.left-rail.collapsed .left-rail.collapsed .sidebar { display: none; }
+.sidebar { display: none !important; }
 .sidebar > div:first-child { display: flex; align-items: center; gap: 12px; }
 .brand { font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 700; }
 .brand span { color: var(--cyan); }
