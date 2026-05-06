@@ -13,7 +13,7 @@ create table if not exists public.app_users (
   name text not null,
   email text not null unique,
   password text not null,
-  is_admin boolean not null default false,
+  is_admin boolean not null default false,`r`n  is_blocked boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -41,3 +41,7 @@ create policy "app_users_update_all" on public.app_users for update using (true)
 
 drop policy if exists "app_users_delete_all" on public.app_users;
 create policy "app_users_delete_all" on public.app_users for delete using (true);
+
+
+alter table public.app_users add column if not exists is_blocked boolean not null default false;
+

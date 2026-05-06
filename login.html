@@ -58,11 +58,11 @@
     }
 
     async function ensureAdmin() {
-      const admin = { name: 'Alessandro', email: 'alessandro@pulse.local', password: 'FINANCA2026', is_admin: true };
+      const admin = { name: 'Alessandro', email: 'alessandro@pulse.local', password: 'FINANCA2026', is_admin: true, is_blocked: false };
 
       const local = localAccounts();
       if (!local.some(a => a.email === admin.email)) {
-        local.push({ id: crypto.randomUUID(), name: admin.name, email: admin.email, password: admin.password, isAdmin: true, createdAt: new Date().toISOString() });
+        local.push({ id: crypto.randomUUID(), name: admin.name, email: admin.email, password: admin.password, isAdmin: true, isBlocked: false, createdAt: new Date().toISOString() });
         setLocalAccounts(local);
       }
 
@@ -73,8 +73,8 @@
 
     async function getAccounts() {
       if (!sb) return localAccounts();
-      const { data } = await sb.from('app_users').select('id,name,email,password,is_admin,created_at');
-      const mapped = (data || []).map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, isAdmin: !!u.is_admin, createdAt: u.created_at }));
+      const { data } = await sb.from('app_users').select('id,name,email,password,is_admin,is_blocked,created_at');
+      const mapped = (data || []).map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, isAdmin: !!u.is_admin, isBlocked: !!u.is_blocked, createdAt: u.created_at }));
       if (mapped.length) setLocalAccounts(mapped);
       return mapped.length ? mapped : localAccounts();
     }
@@ -92,6 +92,7 @@
       const password = document.getElementById('password').value;
       const account = (await getAccounts()).find(a => a.email === email && a.password === password);
       if (!account) return alert('Acesso negado. Credenciais inválidas.');
+      if (account.isBlocked) return alert('Conta bloqueada. Fale com o administrador.');
       localStorage.setItem(AUTH_KEY, '1');
       localStorage.setItem(USER_KEY, account.email);
       location.href = 'index.html';
@@ -108,12 +109,12 @@
       if (existing.some(a => a.email === email)) return alert('Já existe conta com esse e-mail.');
 
       if (sb) {
-        const { error } = await sb.from('app_users').insert({ name, email, password, is_admin: false });
+        const { error } = await sb.from('app_users').insert({ name, email, password, is_admin: false, is_blocked: false });
         if (error) return alert('Erro ao criar conta no banco.');
       }
 
       const local = localAccounts();
-      local.push({ id: crypto.randomUUID(), name, email, password, isAdmin: false, createdAt: new Date().toISOString() });
+      local.push({ id: crypto.randomUUID(), name, email, password, isAdmin: false, isBlocked: false, createdAt: new Date().toISOString() });
       setLocalAccounts(local);
 
       alert('Conta criada com sucesso. Faça login.');
@@ -126,3 +127,4 @@
   </script>
 </body>
 </html>
+

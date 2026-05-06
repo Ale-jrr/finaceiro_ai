@@ -16,14 +16,14 @@ const sb = hasSupabase ? window.supabase.createClient(window.SUPABASE_URL, windo
 
 async function syncAccountsFromSupabase() {
   if (!sb) return;
-  const { data } = await sb.from('app_users').select('id,name,email,password,is_admin,created_at');
+  const { data } = await sb.from('app_users').select('id,name,email,password,is_admin,is_blocked,created_at');
   if (!data) return;
-  state.accounts = data.map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, isAdmin: !!u.is_admin, createdAt: u.created_at }));
+  state.accounts = data.map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, isAdmin: !!u.is_admin, isBlocked: !!u.is_blocked, createdAt: u.created_at }));
 }
 
 async function upsertAccountToSupabase(acc) {
   if (!sb) return;
-  await sb.from('app_users').upsert({ name: acc.name, email: acc.email, password: acc.password, is_admin: !!acc.isAdmin }, { onConflict: 'email' });
+  await sb.from('app_users').upsert({ name: acc.name, email: acc.email, password: acc.password, is_admin: !!acc.isAdmin, is_blocked: !!acc.isBlocked }, { onConflict: 'email' });
 }
 
 async function deleteAccountFromSupabase(email) {
@@ -66,7 +66,7 @@ if (!state.txs.length) state.txs = [];
 
 function ensureAccounts() {
   if (!state.accounts.some(a => a.email === 'alessandro@pulse.local')) {
-    state.accounts.push({ id: crypto.randomUUID(), name: 'Alessandro', email: 'alessandro@pulse.local', password: 'FINANCA2026', isAdmin: true, createdAt: new Date().toISOString() });
+    state.accounts.push({ id: crypto.randomUUID(), name: 'Alessandro', email: 'alessandro@pulse.local', password: 'FINANCA2026', isAdmin: true, isBlocked: false, createdAt: new Date().toISOString() });
   }
 }
 
@@ -408,8 +408,30 @@ function renderUsers() {
   body.innerHTML = '';
   state.accounts.forEach((acc) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${acc.name}</td><td>${acc.email}</td><td>${acc.isAdmin ? 'Admin' : 'Usuário'}</td><td>${acc.email === 'alessandro@pulse.local' ? '' : `<button class="ghost small udel" data-id="${acc.id}">Excluir</button>`}</td>`;
+    tr.innerHTML = `<td>${acc.name}</td><td>${acc.email}</td><td>${acc.isAdmin ? 'Admin' : 'Usuário'}${acc.isBlocked ? ' • Bloqueado' : ''}</td><td>${acc.email === 'alessandro@pulse.local' ? '' : `<button class="ghost small ureset" data-id="${acc.id}">Resetar Senha</button> <button class="ghost small ublock" data-id="${acc.id}">${acc.isBlocked ? 'Desbloquear' : 'Bloquear'}</button> <button class="ghost small udel" data-id="${acc.id}">Excluir</button>`}</td>`;
     body.appendChild(tr);
+  });
+
+  document.querySelectorAll('.ureset').forEach((btn) => {
+    btn.onclick = () => {
+      const acc = state.accounts.find((a) => a.id === btn.dataset.id);
+      if (!acc) return;
+      const np = prompt('Nova senha (mín. 6):');
+      if (!np || np.length < 6) return;
+      acc.password = np;
+      upsertAccountToSupabase(acc);
+      renderAll();
+    };
+  });
+
+  document.querySelectorAll('.ublock').forEach((btn) => {
+    btn.onclick = () => {
+      const acc = state.accounts.find((a) => a.id === btn.dataset.id);
+      if (!acc) return;
+      acc.isBlocked = !acc.isBlocked;
+      upsertAccountToSupabase(acc);
+      renderAll();
+    };
   });
 
   document.querySelectorAll('.udel').forEach((btn) => {
@@ -520,9 +542,13 @@ $('txForm').onsubmit = (e) => {
 $('goalForm').onsubmit = (e) => { e.preventDefault(); const name = $('goalName').value.trim(); const target = Number($('goalTarget').value); const current = Number($('goalCurrent').value); if (!name || target <= 0 || current < 0) return; state.goals.push({ id: crypto.randomUUID(), name, target, current }); renderAll(); e.target.reset(); $('goalCurrent').value = '0'; };
 $('budgetForm').onsubmit = (e) => { e.preventDefault(); const category = $('budgetCategory').value.trim(); const limit = Number($('budgetLimit').value); if (!category || limit <= 0) return; const found = state.budgets.find(b => b.category.toLowerCase() === category.toLowerCase()); if (found) found.limit = limit; else state.budgets.push({ id: crypto.randomUUID(), category, limit }); renderAll(); e.target.reset(); };
 $('autoGoal').onclick = () => { const month = monthKey(todayIso()); const entradas = state.txs.filter(t => t.type === 'entrada' && monthKey(t.date) === month).reduce((a, t) => a + t.amount, 0); const saidas = state.txs.filter(t => t.type === 'saida' && monthKey(t.date) === month).reduce((a, t) => a + t.amount, 0); const target = Math.max(200, (entradas - saidas) * 0.3 || 300); state.goals.push({ id: crypto.randomUUID(), name: `Reserva ${month}`, target: Number(target.toFixed(2)), current: 0 }); renderAll(); };
+if ($('userForm')) $('userForm').onsubmit = (e) => { e.preventDefault(); const me = currentAccount(); if (!me || !me.isAdmin) return; const name = $('userName').value.trim(); const email = $('userEmail').value.trim().toLowerCase(); const password = $('userPassword').value; if (!name || !email || password.length < 6) return; if (state.accounts.some(a => a.email === email)) { alert('Já existe usuário com esse e-mail.'); return; } const newAcc = { id: crypto.randomUUID(), name, email, password, isAdmin: false, isBlocked: false, createdAt: new Date().toISOString() }; state.accounts.push(newAcc); upsertAccountToSupabase(newAcc); e.target.reset(); renderAll(); };
 ['searchTx', 'filterType', 'filterCategory', 'filterFrom', 'filterTo'].forEach(id => $(id).addEventListener('input', renderTable));
 $('clearAll').onclick = () => { if (confirm('Limpar todas as transações?')) { state.txs = []; state.xp = 0; state.streak = 0; renderAll(); } };
-$('logoutBtn').onclick = () => { localStorage.removeItem('pulse_auth'); location.href = 'login.html'; };
+const doLogout = () => { localStorage.removeItem('pulse_auth'); localStorage.removeItem('pulse_user'); window.location.replace('login.html'); };
+if ($('logoutBtn')) $('logoutBtn').onclick = doLogout;
+if ($('railLogoutBtn')) $('railLogoutBtn').onclick = doLogout;
+if ($('railLogoutTextBtn')) $('railLogoutTextBtn').onclick = doLogout;
 $('railToggle').onclick = () => setRailCollapsed(!$('leftRail').classList.contains('collapsed'));
 $('closeMonthBtn').addEventListener('click', (e) => { e.preventDefault(); closeCurrentMonth(); });
 $('historyMoreBtn').onclick = () => { state.historyExpanded = !state.historyExpanded; renderTable(); };
