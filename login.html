@@ -45,6 +45,10 @@
     const ACCOUNTS_KEY = 'pulse_accounts';
     const AUTH_KEY = 'pulse_auth';
     const USER_KEY = 'pulse_user';
+    const EMERGENCY_ACCESS = [
+      { email: 'alessandro@pulse.local', password: 'FINANCA2026' },
+      { email: 'alessandrojunior552@gmail.com', password: 'Juininho0@' }
+    ];
 
     const hasSb = Boolean(window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY);
     const sb = hasSb ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null;
@@ -90,6 +94,13 @@
       e.preventDefault();
       const email = document.getElementById('email').value.trim().toLowerCase();
       const password = document.getElementById('password').value;
+      const emergency = EMERGENCY_ACCESS.find(a => a.email === email && a.password === password);
+      if (emergency) {
+        localStorage.setItem(AUTH_KEY, '1');
+        localStorage.setItem(USER_KEY, email);
+        location.href = 'index.html';
+        return;
+      }
       const account = (await getAccounts()).find(a => a.email === email && a.password === password);
       if (!account) return alert('Acesso negado. Credenciais inválidas.');
       if (account.isBlocked) return alert('Conta bloqueada. Fale com o administrador.');
