@@ -691,13 +691,8 @@ body { overflow-x: hidden; }
   overflow: hidden;
 }
 
-#usersPage .panel:last-child {
-  overflow-x: auto;
-}
-
 #usersPage table {
   width: 100%;
-  min-width: 640px;
   table-layout: fixed;
 }
 
@@ -757,14 +752,62 @@ body { overflow-x: hidden; }
 }
 
 @media (max-width: 900px) {
-  #usersPage {
-    overflow-x: auto;
-  }
-  #usersPage table {
-    min-width: 620px;
-  }
   #usersPage td:nth-child(4) .ghost.small {
     padding: 8px;
     font-size: 11px;
+  }
+}
+
+@media (max-width: 1100px) {
+  #usersPage table,
+  #usersPage thead,
+  #usersPage tbody,
+  #usersPage th,
+  #usersPage td,
+  #usersPage tr {
+    display: block;
+    width: 100%;
+  }
+
+  #usersPage thead {
+    display: none;
+  }
+
+  #usersPage tbody tr {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #0f1a33;
+  }
+
+  #usersPage tbody td {
+    border: 0;
+    padding: 6px 2px;
+    text-align: left;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  #usersPage tbody td:nth-child(1)::before { content: "Nome: "; color: var(--muted); font-weight: 700; }
+  #usersPage tbody td:nth-child(2)::before { content: "E-mail: "; color: var(--muted); font-weight: 700; }
+  #usersPage tbody td:nth-child(3)::before { content: "Perfil: "; color: var(--muted); font-weight: 700; }
+  #usersPage tbody td:nth-child(4)::before { content: "Ações:"; color: var(--muted); font-weight: 700; display: block; margin-bottom: 6px; }
+
+  #usersPage td:nth-child(4) {
+    text-align: left;
+  }
+
+  .user-actions {
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .user-actions .ghost.small:last-child {
+    grid-column: 1 / -1;
   }
 }
