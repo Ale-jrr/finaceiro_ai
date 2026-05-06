@@ -562,3 +562,4 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) requ
 window.addEventListener('popstate', () => { requireAuth(); });
 
 
+

@@ -689,3 +689,19 @@ body { overflow-x: hidden; }
     font-size: 10px;
   }
 }
+.rail-logout {
+  border-color: #7f1d1d;
+  background: linear-gradient(180deg, #3f1d1d, #2b1111);
+}
+.rail-logout span {
+  border-color: #ef4444;
+  background: #3f1d1d;
+}
+.rail-logout small {
+  color: #fecaca;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+.rail-logout:hover {
+  background: linear-gradient(180deg, #7f1d1d, #4a1313);
+}
