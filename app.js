@@ -563,3 +563,13 @@ window.addEventListener('popstate', () => { requireAuth(); });
 
 
 
+
+document.addEventListener('click', (e) => {
+  const target = e.target && e.target.closest ? e.target.closest('#railLogoutTextBtn, #railLogoutBtn') : null;
+  if (!target) return;
+  e.preventDefault();
+  localStorage.removeItem('pulse_auth');
+  localStorage.removeItem('pulse_user');
+  window.location.replace('login.html');
+});
+
