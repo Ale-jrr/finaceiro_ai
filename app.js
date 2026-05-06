@@ -411,6 +411,8 @@ function renderUsers() {
   document.querySelectorAll('.rail-btn[data-page="dashboard"], .rail-btn[data-page="movements"], .rail-btn[data-page="planning"]').forEach((el) => {
     el.classList.toggle('hidden', adminOnly);
   });
+  const closeMonthBtn = $('closeMonthBtn');
+  if (closeMonthBtn) closeMonthBtn.classList.toggle('hidden', adminOnly);
 
   if (!isAdmin) {
     if (!$('usersPage').classList.contains('hidden')) setPage('dashboard');
@@ -421,7 +423,7 @@ function renderUsers() {
   body.innerHTML = '';
   state.accounts.forEach((acc) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${acc.name}</td><td>${acc.email}</td><td>${acc.isAdmin ? 'Admin' : 'Usuário'}${acc.isBlocked ? ' • Bloqueado' : ''}</td><td>${acc.email === 'alessandro@pulse.local' ? '' : `<button class="ghost small ureset" data-id="${acc.id}">Resetar Senha</button> <button class="ghost small ublock" data-id="${acc.id}">${acc.isBlocked ? 'Desbloquear' : 'Bloquear'}</button> <button class="ghost small udel" data-id="${acc.id}">Excluir</button>`}</td>`;
+    tr.innerHTML = `<td>${acc.name}</td><td>${acc.email}</td><td>${acc.isAdmin ? 'Admin' : 'Usuário'}${acc.isBlocked ? ' • Bloqueado' : ''}</td><td>${acc.email === 'alessandro@pulse.local' ? '' : `<div class="user-actions"><button class="ghost small ureset" data-id="${acc.id}">Resetar senha</button><button class="ghost small ublock" data-id="${acc.id}">${acc.isBlocked ? 'Desbloquear' : 'Bloquear'}</button><button class="ghost small udel danger" data-id="${acc.id}">Excluir</button></div>`}</td>`;
     body.appendChild(tr);
   });
 

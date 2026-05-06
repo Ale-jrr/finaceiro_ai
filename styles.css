@@ -685,3 +685,62 @@ body { overflow-x: hidden; }
   background: linear-gradient(180deg, #7f1d1d, #4a1313);
 }
 
+
+/* Users actions buttons */
+#usersPage table {
+  table-layout: auto;
+}
+
+#usersPage th:nth-child(4),
+#usersPage td:nth-child(4) {
+  min-width: 180px;
+  width: 180px;
+  text-align: right;
+}
+
+#usersPage td:nth-child(4) {
+  white-space: normal;
+  vertical-align: middle;
+}
+
+#usersPage td:nth-child(4) .ghost.small {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 8px 10px;
+  min-height: 34px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.user-actions {
+  display: grid;
+  gap: 6px;
+  min-width: 130px;
+}
+
+.user-actions .danger {
+  border-color: #7f1d1d;
+  color: #fecaca;
+}
+
+.user-actions .danger:hover {
+  background: #7f1d1d;
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  #usersPage th:nth-child(4),
+  #usersPage td:nth-child(4) {
+    min-width: 220px;
+    width: 220px;
+  }
+
+  #usersPage td:nth-child(4) .ghost.small {
+    padding: 8px;
+    font-size: 11px;
+  }
+}
