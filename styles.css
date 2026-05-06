@@ -428,3 +428,149 @@ body { overflow-x: hidden; }
 
 
 
+
+/* Mobile fixes */
+@media (max-width: 900px) {
+  .app {
+    padding: 8px;
+    gap: 10px;
+  }
+
+  .left-rail {
+    position: sticky;
+    top: 8px;
+    left: auto;
+    right: auto;
+    width: 100%;
+    padding: 10px;
+    border-radius: 12px;
+    grid-template-rows: auto auto auto;
+    z-index: 30;
+  }
+
+  .left-rail .rail-brand,
+  .left-rail .rail-toggle,
+  .left-rail .rail-footer,
+  .left-rail .rail-user {
+    display: none;
+  }
+
+  .left-rail .rail-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .left-rail .rail-btn {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 4px;
+    border-radius: 10px;
+  }
+
+  .left-rail .rail-btn small {
+    display: block;
+    font-size: 10px;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .main,
+  .left-rail.collapsed ~ .main {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  #dashboardPage,
+  #movementsPage,
+  #planningPage,
+  #usersPage {
+    gap: 10px;
+  }
+
+  .hero {
+    padding: 12px;
+  }
+
+  .hero h1 {
+    font-size: 20px;
+    line-height: 1.15;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .history-header {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .history-header > * {
+    width: 100%;
+  }
+
+  .compare-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .cal-day {
+    padding: 8px;
+  }
+
+  .cal-day b {
+    font-size: 14px;
+  }
+
+  .cal-day small {
+    font-size: 10px;
+  }
+
+  .table-wrap,
+  #historySection {
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 560px;
+  }
+}
+
+@media (max-width: 560px) {
+  .left-rail .rail-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi strong {
+    font-size: 22px;
+  }
+
+  .calendar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .type-toggle {
+    grid-template-columns: 1fr;
+  }
+
+  .row {
+    flex-direction: column;
+  }
+
+  .row > * {
+    width: 100%;
+  }
+}

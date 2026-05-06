@@ -34,7 +34,7 @@ const state = {
   historyExpanded: false,
   accounts: JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]'),
 };
-if (!state.txs.length) state.txs.push({ id: crypto.randomUUID(), type: 'entrada', description: 'Receita inicial', amount: 300, category: 'Geral', date: todayIso() });
+if (!state.txs.length) state.txs = [];
 
 function ensureAccounts() {
   if (!state.accounts.some(a => a.email === 'alessandro@pulse.local')) {
@@ -520,5 +520,7 @@ setPage('dashboard');
 updateInstallmentUI();
 
 renderAll();
+
+
 
 
