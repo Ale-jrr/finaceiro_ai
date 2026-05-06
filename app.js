@@ -1,7 +1,35 @@
 ﻿const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-if (localStorage.getItem('pulse_auth') !== '1') location.href = 'login.html';
+function requireAuth() {
+  if (localStorage.getItem('pulse_auth') !== '1') {
+    localStorage.removeItem('pulse_user');
+    window.location.replace('login.html');
+    return false;
+  }
+  return true;
+}
+if (!requireAuth()) throw new Error('unauthorized');
 const ACCOUNTS_KEY = 'pulse_accounts';
 const $ = (id) => document.getElementById(id);
+
+const hasSupabase = Boolean(window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY);
+const sb = hasSupabase ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null;
+
+async function syncAccountsFromSupabase() {
+  if (!sb) return;
+  const { data } = await sb.from('app_users').select('id,name,email,password,is_admin,created_at');
+  if (!data) return;
+  state.accounts = data.map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, isAdmin: !!u.is_admin, createdAt: u.created_at }));
+}
+
+async function upsertAccountToSupabase(acc) {
+  if (!sb) return;
+  await sb.from('app_users').upsert({ name: acc.name, email: acc.email, password: acc.password, is_admin: !!acc.isAdmin }, { onConflict: 'email' });
+}
+
+async function deleteAccountFromSupabase(email) {
+  if (!sb) return;
+  await sb.from('app_users').delete().eq('email', email);
+}
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const monthKey = (d) => new Date(d).toISOString().slice(0, 7);
 const setRailCollapsed = (collapsed) => {
@@ -386,7 +414,9 @@ function renderUsers() {
 
   document.querySelectorAll('.udel').forEach((btn) => {
     btn.onclick = () => {
+      const target = state.accounts.find((a) => a.id === btn.dataset.id);
       state.accounts = state.accounts.filter((a) => a.id !== btn.dataset.id);
+      if (target) deleteAccountFromSupabase(target.email);
       renderAll();
     };
   });
@@ -514,6 +544,7 @@ document.querySelectorAll('.rail-btn').forEach(btn => btn.onclick = () => {
 });
 
 ensureAccounts();
+syncAccountsFromSupabase().then(() => renderAll());
 const railState = localStorage.getItem('pulse_left_rail_collapsed');
 setRailCollapsed(railState === null ? false : railState === '1');
 setPage('dashboard');
@@ -524,3 +555,8 @@ renderAll();
 
 
 
+
+
+window.addEventListener('pageshow', () => { requireAuth(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) requireAuth(); });
+window.addEventListener('popstate', () => { requireAuth(); });
