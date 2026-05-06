@@ -574,3 +574,118 @@ body { overflow-x: hidden; }
     width: 100%;
   }
 }
+
+/* Mobile UX fine tuning */
+@media (max-width: 900px) {
+  html, body {
+    font-size: 16px;
+  }
+
+  input,
+  select,
+  button,
+  .primary,
+  .ghost,
+  .type {
+    min-height: 44px;
+  }
+
+  .hero p,
+  .legend,
+  td,
+  th,
+  small {
+    line-height: 1.35;
+  }
+
+  #txForm,
+  #goalForm,
+  #budgetForm,
+  #userForm {
+    gap: 10px;
+  }
+
+  #historySection {
+    position: relative;
+    border-radius: 12px;
+  }
+
+  #historySection::after {
+    content: '↔ arraste para ver mais';
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    font-size: 11px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    background: #0f172a;
+    z-index: 1;
+  }
+
+  .history-header h2,
+  .panel h2 {
+    font-size: 17px;
+  }
+
+  .row .ghost,
+  .row .primary {
+    width: 100%;
+  }
+
+  #compareMonth,
+  #calendarMonth,
+  #closureMonth,
+  #filterFrom,
+  #filterTo {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 560px) {
+  .left-rail {
+    padding: 8px;
+  }
+
+  .left-rail .rail-btn span {
+    min-width: 24px;
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  .left-rail .rail-btn small {
+    font-size: 9px;
+  }
+
+  .hero h1 {
+    font-size: 18px;
+  }
+
+  .panel {
+    padding: 10px;
+  }
+
+  .filters {
+    gap: 8px;
+  }
+
+  .compare-grid b {
+    font-size: 15px;
+  }
+
+  #historySection::after {
+    bottom: 8px;
+    right: 8px;
+    font-size: 10px;
+  }
+}
