@@ -687,20 +687,42 @@ body { overflow-x: hidden; }
 
 
 /* Users actions buttons */
-#usersPage table {
-  table-layout: auto;
+#usersPage .panel {
+  overflow: hidden;
 }
 
+#usersPage .panel:last-child {
+  overflow-x: auto;
+}
+
+#usersPage table {
+  width: 100%;
+  min-width: 640px;
+  table-layout: fixed;
+}
+
+#usersPage th:nth-child(1),
+#usersPage td:nth-child(1) { width: 24%; }
+#usersPage th:nth-child(2),
+#usersPage td:nth-child(2) { width: 34%; }
+#usersPage th:nth-child(3),
+#usersPage td:nth-child(3) { width: 12%; }
 #usersPage th:nth-child(4),
-#usersPage td:nth-child(4) {
-  min-width: 180px;
-  width: 180px;
-  text-align: right;
+#usersPage td:nth-child(4) { width: 30%; }
+
+#usersPage td:nth-child(1),
+#usersPage td:nth-child(2),
+#usersPage td:nth-child(3) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #usersPage td:nth-child(4) {
   white-space: normal;
   vertical-align: middle;
+  text-align: right;
+  overflow: hidden;
 }
 
 #usersPage td:nth-child(4) .ghost.small {
@@ -709,17 +731,19 @@ body { overflow-x: hidden; }
   align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 8px 10px;
-  min-height: 34px;
+  padding: 6px 8px;
+  min-height: 30px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
 }
 
 .user-actions {
   display: grid;
-  gap: 6px;
-  min-width: 130px;
+  gap: 5px;
+  width: 100%;
+  max-width: 132px;
+  margin-left: auto;
 }
 
 .user-actions .danger {
@@ -733,12 +757,12 @@ body { overflow-x: hidden; }
 }
 
 @media (max-width: 900px) {
-  #usersPage th:nth-child(4),
-  #usersPage td:nth-child(4) {
-    min-width: 220px;
-    width: 220px;
+  #usersPage {
+    overflow-x: auto;
   }
-
+  #usersPage table {
+    min-width: 620px;
+  }
   #usersPage td:nth-child(4) .ghost.small {
     padding: 8px;
     font-size: 11px;
