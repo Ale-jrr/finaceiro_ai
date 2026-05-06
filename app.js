@@ -1,5 +1,6 @@
 ﻿const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 if (localStorage.getItem('pulse_auth') !== '1') location.href = 'login.html';
+const ACCOUNTS_KEY = 'pulse_accounts';
 const $ = (id) => document.getElementById(id);
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const monthKey = (d) => new Date(d).toISOString().slice(0, 7);
@@ -31,8 +32,20 @@ const state = {
   ignoredRecurring: JSON.parse(localStorage.getItem('pulse_ignored_recurring') || '[]'),
   installmentMode: false,
   historyExpanded: false,
+  accounts: JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]'),
 };
 if (!state.txs.length) state.txs.push({ id: crypto.randomUUID(), type: 'entrada', description: 'Receita inicial', amount: 300, category: 'Geral', date: todayIso() });
+
+function ensureAccounts() {
+  if (!state.accounts.some(a => a.email === 'alessandro@pulse.local')) {
+    state.accounts.push({ id: crypto.randomUUID(), name: 'Alessandro', email: 'alessandro@pulse.local', password: 'FINANCA2026', isAdmin: true, createdAt: new Date().toISOString() });
+  }
+}
+
+function currentAccount() {
+  const email = (localStorage.getItem('pulse_user') || '').toLowerCase();
+  return state.accounts.find(a => a.email === email) || null;
+}
 
 function save() {
   localStorage.setItem('pulse_txs', JSON.stringify(state.txs));
@@ -46,6 +59,7 @@ function save() {
   localStorage.setItem('pulse_closure_month', state.closureMonth);
   localStorage.setItem('pulse_month_closures', JSON.stringify(state.closures));
   localStorage.setItem('pulse_ignored_recurring', JSON.stringify(state.ignoredRecurring));
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
 }
 
 function summary() {
@@ -344,6 +358,39 @@ function importCsv(file) { const r = new FileReader(); r.onload = () => { const 
 function backupJson() { const data = { txs: state.txs, goals: state.goals, budgets: state.budgets, xp: state.xp, streak: state.streak, achievements: state.achievements }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'pulse-backup.json'; a.click(); URL.revokeObjectURL(a.href); }
 function restoreJson(file) { const r = new FileReader(); r.onload = () => { try { const d = JSON.parse(r.result); state.txs = d.txs || []; state.goals = d.goals || []; state.budgets = d.budgets || []; state.xp = d.xp || 0; state.streak = d.streak || 0; state.achievements = d.achievements || []; renderAll(); } catch { alert('Backup inválido'); } }; r.readAsText(file); }
 
+
+function renderUsers() {
+  const body = $('usersBody');
+  const menuLink = $('usersMenuLink');
+  if (!body || !menuLink) return;
+
+  const me = currentAccount();
+  const isAdmin = Boolean(me && me.isAdmin);
+
+  menuLink.classList.toggle('hidden', !isAdmin);
+  document.querySelectorAll('.rail-btn[data-page="users"]').forEach((btn) => {
+    btn.classList.toggle('hidden', !isAdmin);
+  });
+
+  if (!isAdmin) {
+    if (!$('usersPage').classList.contains('hidden')) setPage('dashboard');
+    return;
+  }
+
+  body.innerHTML = '';
+  state.accounts.forEach((acc) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${acc.name}</td><td>${acc.email}</td><td>${acc.isAdmin ? 'Admin' : 'Usuário'}</td><td>${acc.email === 'alessandro@pulse.local' ? '' : `<button class="ghost small udel" data-id="${acc.id}">Excluir</button>`}</td>`;
+    body.appendChild(tr);
+  });
+
+  document.querySelectorAll('.udel').forEach((btn) => {
+    btn.onclick = () => {
+      state.accounts = state.accounts.filter((a) => a.id !== btn.dataset.id);
+      renderAll();
+    };
+  });
+}
 function renderAll() {
   const s = summary();
   $('saldo').textContent = money.format(s.saldo);
@@ -363,6 +410,7 @@ function renderAll() {
   renderScore();
   renderClosureSummary();
   renderRecurring();
+  renderUsers();
   drawChart();
   save();
 }
@@ -465,10 +513,12 @@ document.querySelectorAll('.rail-btn').forEach(btn => btn.onclick = () => {
   if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
+ensureAccounts();
 const railState = localStorage.getItem('pulse_left_rail_collapsed');
 setRailCollapsed(railState === null ? false : railState === '1');
 setPage('dashboard');
 updateInstallmentUI();
 
 renderAll();
+
 

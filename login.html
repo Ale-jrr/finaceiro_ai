@@ -3,52 +3,111 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login - Pulse Finance</title>
+  <title>Login - Zentro Finance</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     body{margin:0;min-height:100vh;display:grid;place-items:center;background:linear-gradient(160deg,#0b1220,#0f1b33);font-family:Manrope,sans-serif;color:#e8efff}
-    .card{width:min(420px,92vw);padding:26px;border-radius:18px;background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12)}
+    .card{width:min(440px,92vw);padding:26px;border-radius:18px;background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12)}
     h1{font-family:'Space Grotesk',sans-serif;margin:0 0 8px} p{margin:0 0 16px;color:#9fb0d0}
     input,button{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0d1730;color:#e8efff;margin-bottom:10px}
     button{border:none;background:linear-gradient(120deg,#3b82f6,#22d3ee);font-weight:800;cursor:pointer}
+    .ghost{background:transparent;border:1px solid rgba(255,255,255,.2);font-weight:600}
+    .hidden{display:none}
     small{color:#9fb0d0}
   </style>
 </head>
 <body>
-  <form class="card" id="loginForm">
-    <h1>Pulse Finance</h1>
-    <p>Entre para acessar seu painel.</p>
-    <input id="email" type="email" placeholder="E-mail" required />
-    <input id="password" type="password" placeholder="Senha" required />
-    <button type="submit">Entrar</button>
-    <small>Acesso restrito ao usuário autorizado.</small>
-  </form>
-  <script>
-    const ALLOWED_EMAIL = 'alessandro@pulse.local';
-    const ALLOWED_PASSWORD = '1234';
+  <div class="card">
+    <form id="loginForm">
+      <h1>Zentro Finance</h1>
+      <p>Entre para acessar seu painel.</p>
+      <input id="email" type="email" placeholder="E-mail" required />
+      <input id="password" type="password" placeholder="Senha" required />
+      <button type="submit">Entrar</button>
+      <button id="showRegister" class="ghost" type="button">Criar conta</button>
+      <small id="loginHint">Use suas credenciais.</small>
+    </form>
 
-    if (localStorage.getItem('pulse_auth') === '1') {
-      location.href = 'index.html';
+    <form id="registerForm" class="hidden">
+      <h1>Criar Conta</h1>
+      <p>Crie um novo acesso para sua plataforma.</p>
+      <input id="registerName" type="text" placeholder="Nome" required />
+      <input id="registerEmail" type="email" placeholder="E-mail" required />
+      <input id="registerPassword" type="password" placeholder="Senha" minlength="6" required />
+      <button type="submit">Salvar conta</button>
+      <button id="backToLogin" class="ghost" type="button">Voltar ao login</button>
+      <small>A conta criada poderá entrar imediatamente.</small>
+    </form>
+  </div>
+
+  <script>
+    const ACCOUNTS_KEY = 'pulse_accounts';
+    const AUTH_KEY = 'pulse_auth';
+    const USER_KEY = 'pulse_user';
+
+    function getAccounts() {
+      const raw = localStorage.getItem(ACCOUNTS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (!parsed.some(a => a.email === 'alessandro@pulse.local')) {
+        parsed.push({ id: crypto.randomUUID(), name: 'Alessandro', email: 'alessandro@pulse.local', password: 'FINANCA2026', isAdmin: true, createdAt: new Date().toISOString() });
+        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(parsed));
+      }
+      return parsed;
     }
 
-    document.getElementById('loginForm').addEventListener('submit', function (e) {
+    if (localStorage.getItem(AUTH_KEY) === '1') location.href = 'index.html';
+
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const showRegister = document.getElementById('showRegister');
+    const backToLogin = document.getElementById('backToLogin');
+
+    showRegister.addEventListener('click', () => {
+      loginForm.classList.add('hidden');
+      registerForm.classList.remove('hidden');
+    });
+
+    backToLogin.addEventListener('click', () => {
+      registerForm.classList.add('hidden');
+      loginForm.classList.remove('hidden');
+    });
+
+    loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value.trim().toLowerCase();
-      const pass = document.getElementById('password').value;
-
-      if (email !== ALLOWED_EMAIL || pass !== ALLOWED_PASSWORD) {
+      const password = document.getElementById('password').value;
+      const account = getAccounts().find(a => a.email === email && a.password === password);
+      if (!account) {
         alert('Acesso negado. Credenciais inválidas.');
         return;
       }
-
-      localStorage.setItem('pulse_auth', '1');
-      localStorage.setItem('pulse_user', ALLOWED_EMAIL);
+      localStorage.setItem(AUTH_KEY, '1');
+      localStorage.setItem(USER_KEY, account.email);
       location.href = 'index.html';
     });
+
+    registerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('registerName').value.trim();
+      const email = document.getElementById('registerEmail').value.trim().toLowerCase();
+      const password = document.getElementById('registerPassword').value;
+      if (!name || !email || password.length < 6) return;
+      const accounts = getAccounts();
+      if (accounts.some(a => a.email === email)) {
+        alert('Já existe conta com esse e-mail.');
+        return;
+      }
+      accounts.push({ id: crypto.randomUUID(), name, email, password, isAdmin: false, createdAt: new Date().toISOString() });
+      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+      alert('Conta criada com sucesso. Faça login.');
+      registerForm.reset();
+      registerForm.classList.add('hidden');
+      loginForm.classList.remove('hidden');
+    });
+
+    getAccounts();
   </script>
 </body>
 </html>
-
-

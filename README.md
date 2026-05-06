@@ -1,56 +1,54 @@
-﻿# Pulse Finance
+﻿# Zentro / Pulse Finance
 
-Aplicação web de controle financeiro pessoal com login, dashboard, planejamento de metas e análise mensal.
+Aplicação web de controle financeiro com login local e sincronização opcional com Supabase.
 
 ## Acesso
 
 - Login: `alessandro@pulse.local`
 - Senha: `1234`
 
-## Como usar
+## Rodar local
 
-1. Abra `login.html` no navegador.
-2. Faça login.
-3. O app redireciona para `index.html`.
+Abra `login.html` no navegador.
 
-## Funcionalidades
+## Supabase (sincronização)
 
-- Dashboard com KPIs: saldo, entradas, saídas e eficiência.
-- Histórico de transações com filtros por descrição, tipo, categoria e período.
-- Cadastro de transações com suporte a parcelamento (saídas).
-- Comparativo mensal (mês atual vs anterior).
-- Calendário financeiro diário.
-- Planejamento com metas e aporte rápido.
-- Orçamento por categoria com alerta de estouro.
-- Exportação CSV de transações.
-- Importação CSV de transações.
-- Backup e restauração JSON.
-- Sessão local com logout.
+1. No Supabase, abra o SQL Editor e execute o arquivo `supabase.sql`.
+2. Copie `supabase-config.example.js` para `supabase-config.js`.
+3. Preencha:
 
-## Importação CSV
-
-O arquivo deve ter cabeçalho e seguir este formato:
-
-```csv
-tipo,descricao,categoria,valor,data
-entrada,"Salário","Trabalho",3500,2026-05-01
-saida,"Mercado","Alimentação",420.50,2026-05-03
+```js
+window.SUPABASE_URL = 'https://SEU-PROJETO.supabase.co';
+window.SUPABASE_ANON_KEY = 'SUA_ANON_KEY';
 ```
 
-Regras:
-- `tipo`: `entrada` ou `saida`
-- `valor`: número positivo
-- `data`: formato `YYYY-MM-DD`
+4. Reabra o app. A sincronização passa a ocorrer automaticamente.
 
-## Estrutura
+## Como funciona a sync
 
-- `login.html`: tela de login
-- `index.html`: app principal
-- `styles.css`: estilos
-- `app.js`: regras de negócio e persistência local
+- O app continua funcionando offline com `localStorage`.
+- Com Supabase configurado, ele sincroniza o estado do app por usuário (`pulse_user`) na tabela `app_user_state`.
+- Se houver dado mais novo no Supabase, ele puxa e recarrega a página.
 
-## Persistência
+## Deploy na Vercel
 
-Os dados são salvos no `localStorage` do navegador.
+1. Suba o repo no GitHub.
+2. Na Vercel: `Add New -> Project -> Import Git Repository`.
+3. Framework preset: `Other`.
+4. Build command: vazio.
+5. Output directory: vazio.
+6. Deploy.
 
+### Importante para config em produção
 
+Como é um app estático, mantenha `supabase-config.js` no projeto com URL/key anon.
+Para segurança real, migre autenticação para Supabase Auth e políticas RLS por usuário.
+
+## Arquivos principais
+
+- `login.html`
+- `index.html`
+- `app.js`
+- `supabase-sync.js`
+- `supabase-config.js`
+- `supabase.sql`

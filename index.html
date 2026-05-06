@@ -22,6 +22,7 @@
         <button class="rail-btn active" data-page="dashboard" data-target="dashboardPage" title="Dashboard"><span>⌂</span><small>Dashboard</small></button>
         <button class="rail-btn" data-page="movements" data-target="movementsPage" title="Movimentações"><span>↹</span><small>Movimentações</small></button>
         <button class="rail-btn" data-page="planning" data-target="planningPage" title="Planejamentos"><span>◎</span><small>Planejamentos</small></button>
+        <button class="rail-btn" data-page="users" data-target="usersPage" title="Usuários"><span>👥</span><small>Usuários</small></button>
         <button id="closeMonthBtn" class="rail-btn" type="button" title="Fechar Mês"><span>✓</span><small>Fechar Mês</small></button>
       </nav>
       <div class="rail-footer">
@@ -45,6 +46,7 @@
           <a class="item active" data-page="dashboard">Dashboard</a>
           <a class="item" data-page="movements">Movimentações</a>
           <a class="item" data-page="planning">Planejamento</a>
+          <a class="item" data-page="users" id="usersMenuLink">Usuários</a>
         </nav>
       </div>
       <div class="user"><span id="userEmail">Usuario</span><br><button id="logoutBtn" class="ghost small" style="margin-top:8px">Sair</button></div>
@@ -202,9 +204,15 @@
       </section>
     </main>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <script src="app.js"></script>
+  <script src="supabase-sync.js"></script>
 </body>
 </html>
+
+
+
 
 
 
