@@ -561,3 +561,4 @@ window.addEventListener('pageshow', () => { requireAuth(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) requireAuth(); });
 window.addEventListener('popstate', () => { requireAuth(); });
 
+
