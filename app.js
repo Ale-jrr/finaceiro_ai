@@ -3,6 +3,18 @@ if (localStorage.getItem('pulse_auth') !== '1') location.href = 'login.html';
 const $ = (id) => document.getElementById(id);
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const monthKey = (d) => new Date(d).toISOString().slice(0, 7);
+const setRailCollapsed = (collapsed) => {
+  const rail = $('leftRail');
+  const btn = $('railToggle');
+  rail.classList.toggle('collapsed', collapsed);
+  btn.textContent = collapsed ? '›' : 'Recolher';
+  localStorage.setItem('pulse_left_rail_collapsed', collapsed ? '1' : '0');
+};
+const setPage = (page) => {
+  $('dashboardPage').classList.toggle('hidden', page !== 'dashboard');
+  $('movementsPage').classList.toggle('hidden', page !== 'movements');
+  $('planningPage').classList.toggle('hidden', page !== 'planning');
+};
 
 const state = {
   txs: JSON.parse(localStorage.getItem('pulse_txs') || '[]'),
@@ -13,6 +25,12 @@ const state = {
   xp: Number(localStorage.getItem('pulse_xp') || 0),
   streak: Number(localStorage.getItem('pulse_streak') || 0),
   compareMonth: localStorage.getItem('pulse_compare_month') || monthKey(todayIso()),
+  calendarMonth: localStorage.getItem('pulse_calendar_month') || monthKey(todayIso()),
+  closureMonth: localStorage.getItem('pulse_closure_month') || monthKey(todayIso()),
+  closures: JSON.parse(localStorage.getItem('pulse_month_closures') || '{}'),
+  ignoredRecurring: JSON.parse(localStorage.getItem('pulse_ignored_recurring') || '[]'),
+  installmentMode: false,
+  historyExpanded: false,
 };
 if (!state.txs.length) state.txs.push({ id: crypto.randomUUID(), type: 'entrada', description: 'Receita inicial', amount: 300, category: 'Geral', date: todayIso() });
 
@@ -24,6 +42,10 @@ function save() {
   localStorage.setItem('pulse_xp', state.xp);
   localStorage.setItem('pulse_streak', state.streak);
   localStorage.setItem('pulse_compare_month', state.compareMonth);
+  localStorage.setItem('pulse_calendar_month', state.calendarMonth);
+  localStorage.setItem('pulse_closure_month', state.closureMonth);
+  localStorage.setItem('pulse_month_closures', JSON.stringify(state.closures));
+  localStorage.setItem('pulse_ignored_recurring', JSON.stringify(state.ignoredRecurring));
 }
 
 function summary() {
@@ -46,27 +68,201 @@ function prevMonth(key) {
   return d.toISOString().slice(0, 7);
 }
 
+function nextMonthDate(isoDate, addMonths) {
+  const d = new Date(isoDate);
+  d.setMonth(d.getMonth() + addMonths);
+  return d.toISOString().slice(0, 10);
+}
+
+function summarizeMonth(key) {
+  const tx = state.txs.filter(t => monthKey(t.date) === key);
+  const entradas = tx.filter(t => t.type === 'entrada').reduce((a, t) => a + t.amount, 0);
+  const saidas = tx.filter(t => t.type === 'saida').reduce((a, t) => a + t.amount, 0);
+  return { entradas, saidas, saldo: entradas - saidas, count: tx.length };
+}
+
+function detectRecurringExpenses() {
+  const out = [];
+  const map = new Map();
+  state.txs
+    .filter(t => t.type === 'saida')
+    .forEach(t => {
+      const key = `${t.description.toLowerCase()}|${Number(t.amount).toFixed(2)}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(t);
+    });
+  map.forEach((items, key) => {
+    const months = new Set(items.map(i => monthKey(i.date)));
+    if (months.size >= 3 && !state.ignoredRecurring.includes(key)) {
+      const sample = items[0];
+      out.push({
+        key,
+        description: sample.description,
+        amount: sample.amount,
+        occurrences: items.length,
+        months: months.size,
+      });
+    }
+  });
+  return out.sort((a, b) => b.months - a.months);
+}
+
+function renderBudgetAlerts() {
+  const m = monthKey(todayIso());
+  const alerts = [];
+  state.budgets.forEach(b => {
+    const spent = state.txs
+      .filter(t => t.type === 'saida' && t.category.toLowerCase() === b.category.toLowerCase() && monthKey(t.date) === m)
+      .reduce((a, t) => a + t.amount, 0);
+    if (spent > b.limit) alerts.push(`${b.category}: ${money.format(spent)} de ${money.format(b.limit)}`);
+  });
+  $('budgetAlertText').textContent = alerts.length
+    ? `Orçamento estourado em: ${alerts.join(' | ')}`
+    : 'Sem alertas de orçamento no momento.';
+}
+
+function renderProjection() {
+  const now = new Date();
+  const key = monthKey(todayIso());
+  const monthData = summarizeMonth(key);
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const passed = now.getDate();
+  const projectedEntradas = passed ? (monthData.entradas / passed) * daysInMonth : 0;
+  const projectedSaidas = passed ? (monthData.saidas / passed) * daysInMonth : 0;
+  const projectedSaldo = projectedEntradas - projectedSaidas;
+  $('monthProjectionText').textContent = `Projeção até fim do mês: entradas ${money.format(projectedEntradas)}, saídas ${money.format(projectedSaidas)}, saldo ${money.format(projectedSaldo)}.`;
+}
+
+function renderScore() {
+  const s = summary();
+  const m = monthKey(todayIso());
+  const activeBudgets = state.budgets.length;
+  let score = 100;
+  if (s.saldo < 0) score -= 30;
+  if (s.saidas > s.entradas) score -= 20;
+  if (activeBudgets > 0) {
+    let exceeded = 0;
+    state.budgets.forEach(b => {
+      const spent = state.txs
+        .filter(t => t.type === 'saida' && t.category.toLowerCase() === b.category.toLowerCase() && monthKey(t.date) === m)
+        .reduce((a, t) => a + t.amount, 0);
+      if (spent > b.limit) exceeded += 1;
+    });
+    score -= exceeded * 10;
+  }
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  $('financeScore').textContent = `${score}/100`;
+  $('financeScoreHint').textContent = score >= 80 ? 'Ótimo controle financeiro.' : score >= 60 ? 'Bom, mas com pontos de atenção.' : 'Risco financeiro elevado no mês.';
+}
+
+function renderClosureSummary() {
+  const key = state.closureMonth;
+  $('closureMonth').value = key;
+  const saved = state.closures[key];
+  if (!saved) {
+    $('monthSummaryText').textContent = 'Sem fechamento salvo para este mês.';
+    return;
+  }
+  $('monthSummaryText').textContent = `Fechado em ${new Date(saved.closedAt).toLocaleDateString('pt-BR')}: entradas ${money.format(saved.entradas)}, saídas ${money.format(saved.saidas)}, saldo ${money.format(saved.saldo)} (${saved.count} transações).`;
+}
+
+function renderRecurring() {
+  const list = $('recurringList');
+  const items = detectRecurringExpenses();
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = '<p class="legend">Nenhum gasto recorrente detectado.</p>';
+    return;
+  }
+  items.forEach(r => {
+    const el = document.createElement('div');
+    el.className = 'goal-item';
+    el.innerHTML = `<div class="goal-head"><strong>${r.description}</strong><button class="ghost small rec-ignore" data-key="${r.key}">Ignorar</button></div><p class="legend">${money.format(r.amount)} • ${r.months} meses (${r.occurrences} lançamentos)</p>`;
+    list.appendChild(el);
+  });
+  document.querySelectorAll('.rec-ignore').forEach(b => b.onclick = () => {
+    state.ignoredRecurring.push(b.dataset.key);
+    renderAll();
+  });
+}
+
+function closeCurrentMonth() {
+  const key = monthKey(todayIso());
+  const data = summarizeMonth(key);
+  state.closures[key] = { ...data, closedAt: new Date().toISOString() };
+  state.closureMonth = key;
+  alert(`Mês ${key} fechado com sucesso.`);
+  setPage('dashboard');
+  const target = $('monthSummaryText');
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  renderAll();
+}
+
+
 function drawChart() {
   const c = $('chart');
   const ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
-  const points = [];
+  const currentMonth = monthKey(todayIso());
+  const [yy, mm] = currentMonth.split('-').map(Number);
+  const daysInMonth = new Date(yy, mm, 0).getDate();
+  const p = 34;
+  const plotW = c.width - p * 2;
+  const plotH = c.height - p * 2;
+
+  const entradas = [];
+  const saidas = [];
+  const saldoAcc = [];
   let acc = 0;
-  for (let day = 1; day <= 30; day++) {
-    const dtx = state.txs.filter(t => new Date(t.date).getDate() === day && monthKey(t.date) === monthKey(todayIso()));
-    acc += dtx.reduce((a, t) => a + (t.type === 'entrada' ? t.amount : -t.amount), 0);
-    points.push(acc);
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dtx = state.txs.filter(t => new Date(t.date).getDate() === day && monthKey(t.date) === currentMonth);
+    const ent = dtx.filter(t => t.type === 'entrada').reduce((a, t) => a + t.amount, 0);
+    const sai = dtx.filter(t => t.type === 'saida').reduce((a, t) => a + t.amount, 0);
+    acc += ent - sai;
+    entradas.push(ent);
+    saidas.push(sai);
+    saldoAcc.push(acc);
   }
-  const min = Math.min(0, ...points), max = Math.max(100, ...points), p = 34;
-  ctx.strokeStyle = '#2c4475';
+
+  const maxBar = Math.max(1, ...entradas, ...saidas);
+  const minLine = Math.min(0, ...saldoAcc);
+  const maxLine = Math.max(1, ...saldoAcc);
+
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
-    const y = p + ((c.height - p * 2) / 4) * i;
-    ctx.beginPath(); ctx.moveTo(p, y); ctx.lineTo(c.width - p, y); ctx.stroke();
+    const y = p + (plotH / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(p, y);
+    ctx.lineTo(c.width - p, y);
+    ctx.stroke();
   }
-  ctx.strokeStyle = '#8b5cf6'; ctx.lineWidth = 3; ctx.beginPath();
-  points.forEach((v, i) => {
-    const x = p + i / (points.length - 1) * (c.width - p * 2);
-    const y = p + (1 - (v - min) / (max - min || 1)) * (c.height - p * 2);
+
+  const stepX = plotW / daysInMonth;
+  const barW = Math.max(2, stepX * 0.3);
+
+  for (let i = 0; i < daysInMonth; i++) {
+    const xMid = p + i * stepX + stepX / 2;
+    const entH = (entradas[i] / maxBar) * (plotH * 0.35);
+    const saiH = (saidas[i] / maxBar) * (plotH * 0.35);
+    const baseY = p + plotH;
+
+    if (entH > 0) {
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(xMid - barW - 1, baseY - entH, barW, entH);
+    }
+    if (saiH > 0) {
+      ctx.fillStyle = '#f87171';
+      ctx.fillRect(xMid + 1, baseY - saiH, barW, saiH);
+    }
+  }
+
+  ctx.strokeStyle = '#b8922e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  saldoAcc.forEach((v, i) => {
+    const x = p + i * stepX + stepX / 2;
+    const y = p + (1 - (v - minLine) / (maxLine - minLine || 1)) * (plotH * 0.6);
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
   ctx.stroke();
@@ -90,18 +286,43 @@ function filteredTxs() {
 
 function renderTable() {
   const body = $('txBody');
+  const moreWrap = $('historyMoreWrap');
+  const moreBtn = $('historyMoreBtn');
+  const all = filteredTxs();
+  const visible = state.historyExpanded ? all : all.slice(0, 3);
   body.innerHTML = '';
-  filteredTxs().slice(0, 100).forEach(tx => {
+  visible.forEach(tx => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${tx.description}<br><small>${tx.category}${tx.installment ? ` • ${tx.installment}` : ''}</small></td><td>${new Date(tx.date).toLocaleDateString('pt-BR')}</td><td style="font-weight:700;color:${tx.type === 'saida' ? '#fb7185' : '#34d399'}">${tx.type === 'saida' ? '-' : '+'} ${money.format(tx.amount)}</td><td><button class="ghost small del" data-id="${tx.id}">Excluir</button></td>`;
+    tr.innerHTML = `<td>${tx.description}<br><small>${tx.category}${tx.installment ? ` • ${tx.installment}` : ''}</small></td><td>${new Date(tx.date).toLocaleDateString('pt-BR')}</td><td style="font-weight:700;color:${tx.type === 'saida' ? '#fb7185' : '#34d399'}">${tx.type === 'saida' ? '-' : '+'} ${money.format(tx.amount)}</td><td><button class="ghost small del" data-id="${tx.id}" title="Excluir">X</button></td>`;
     body.appendChild(tr);
   });
+  moreWrap.classList.toggle('hidden', all.length <= 3);
+  moreBtn.textContent = state.historyExpanded ? 'Ver menos' : 'Ver mais';
   document.querySelectorAll('.del').forEach(b => b.onclick = () => { state.txs = state.txs.filter(t => t.id !== b.dataset.id); renderAll(); });
 }
 
 function renderGoals() { const list = $('goalsList'); list.innerHTML = ''; $('goalsCount').textContent = state.goals.length; $('goalsDone').textContent = state.goals.filter(g => g.current >= g.target).length; if (!state.goals.length) { list.innerHTML = '<p class="legend">Nenhuma meta criada.</p>'; return; } state.goals.forEach(g => { const pr = Math.max(0, Math.min(100, g.current / g.target * 100)); const el = document.createElement('div'); el.className = 'goal-item'; el.innerHTML = `<div class="goal-head"><strong>${g.name}</strong><div class="row"><button class="ghost small add" data-id="${g.id}">+ aporte</button><button class="ghost small goal-del" data-id="${g.id}">Excluir</button></div></div><p class="legend">${money.format(g.current)} de ${money.format(g.target)} (${pr.toFixed(1)}%)</p><div class="progress"><i style="width:${pr}%"></i></div>`; list.appendChild(el); }); document.querySelectorAll('.goal-del').forEach(b => b.onclick = () => { state.goals = state.goals.filter(g => g.id !== b.dataset.id); renderAll(); }); document.querySelectorAll('.add').forEach(b => b.onclick = () => { const v = Number(prompt('Valor do aporte (R$):', '100') || 0); if (v > 0) { const g = state.goals.find(x => x.id === b.dataset.id); g.current += v; state.xp += 12; renderAll(); } }); }
 function renderBudgets() { const box = $('budgetList'); box.innerHTML = ''; if (!state.budgets.length) { box.innerHTML = '<p class="legend">Sem orçamentos.</p>'; return; } const m = monthKey(todayIso()); state.budgets.forEach(b => { const spent = state.txs.filter(t => t.type === 'saida' && t.category.toLowerCase() === b.category.toLowerCase() && monthKey(t.date) === m).reduce((a, t) => a + t.amount, 0); const pr = Math.min(100, spent / b.limit * 100); const el = document.createElement('div'); el.className = 'goal-item'; el.innerHTML = `<div class="goal-head"><strong>${b.category}</strong><button class="ghost small bdel" data-id="${b.id}">Excluir</button></div><p class="legend">${money.format(spent)} de ${money.format(b.limit)} (${pr.toFixed(1)}%)</p><div class="progress"><i style="width:${pr}%"></i></div>`; box.appendChild(el); }); document.querySelectorAll('.bdel').forEach(b => b.onclick = () => { state.budgets = state.budgets.filter(x => x.id !== b.dataset.id); renderAll(); }); }
-function renderCalendar() { const cal = $('calendar'); cal.innerHTML = ''; const m = monthKey(todayIso()); for (let d = 1; d <= 31; d++) { const date = `${m}-${String(d).padStart(2, '0')}`; const ent = state.txs.filter(t => t.date === date && t.type === 'entrada').reduce((a, t) => a + t.amount, 0); const sai = state.txs.filter(t => t.date === date && t.type === 'saida').reduce((a, t) => a + t.amount, 0); const div = document.createElement('div'); div.className = 'cal-day'; div.innerHTML = `<b>${String(d).padStart(2, '0')}</b><small>+${ent.toFixed(0)} / -${sai.toFixed(0)}</small>`; if (sai > ent) div.classList.add('bad'); else if (ent > 0 || sai > 0) div.classList.add('good'); cal.appendChild(div); } }
+function renderCalendar() {
+  const cal = $('calendar');
+  const monthInput = $('calendarMonth');
+  const m = state.calendarMonth || monthKey(todayIso());
+  monthInput.value = m;
+  cal.innerHTML = '';
+  const [year, month] = m.split('-').map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = `${m}-${String(d).padStart(2, '0')}`;
+    const ent = state.txs.filter(t => t.date === date && t.type === 'entrada').reduce((a, t) => a + t.amount, 0);
+    const sai = state.txs.filter(t => t.date === date && t.type === 'saida').reduce((a, t) => a + t.amount, 0);
+    const div = document.createElement('div');
+    div.className = 'cal-day';
+    div.innerHTML = `<b>${String(d).padStart(2, '0')}</b><small>+${ent.toFixed(0)} / -${sai.toFixed(0)}</small>`;
+    if (sai > ent) div.classList.add('bad');
+    else if (ent > 0 || sai > 0) div.classList.add('good');
+    cal.appendChild(div);
+  }
+}
 function renderObjective() { const open = state.goals.filter(g => g.current < g.target).sort((a, b) => (b.target - b.current) - (a.target - a.current))[0]; $('objectiveText').textContent = open ? `Modo objetivo: foco em "${open.name}". Falta ${money.format(open.target - open.current)}.` : 'Crie uma meta para ativar o modo objetivo.'; }
 
 function renderCompare() {
@@ -131,25 +352,123 @@ function renderAll() {
   $('eficiencia').textContent = `${s.eficiencia.toFixed(1)}%`;
   $('insightText').textContent = s.saidas > s.entradas ? 'Atenção: saídas acima das entradas.' : 'Fluxo financeiro sob controle.';
   $('userEmail').textContent = localStorage.getItem('pulse_user') || 'Usuario';
-  renderTable(); renderGoals(); renderBudgets(); renderCalendar(); renderObjective(); renderCompare(); drawChart(); save();
+  renderTable();
+  renderGoals();
+  renderBudgets();
+  renderCalendar();
+  renderObjective();
+  renderCompare();
+  renderBudgetAlerts();
+  renderProjection();
+  renderScore();
+  renderClosureSummary();
+  renderRecurring();
+  drawChart();
+  save();
 }
 
-document.querySelectorAll('[data-page]').forEach(link => link.onclick = () => { document.querySelectorAll('[data-page]').forEach(i => i.classList.remove('active')); link.classList.add('active'); const page = link.dataset.page; $('dashboardPage').classList.toggle('hidden', page !== 'dashboard'); $('planningPage').classList.toggle('hidden', page !== 'planning'); });
+document.querySelectorAll('[data-page]').forEach(link => link.onclick = () => {
+  document.querySelectorAll('[data-page]').forEach(i => i.classList.remove('active'));
+  link.classList.add('active');
+  const page = link.dataset.page;
+  setPage(page);
+  const railMain = document.querySelector(`.rail-btn[data-page="${page}"]`);
+  if (railMain) {
+    document.querySelectorAll('.rail-btn').forEach(i => i.classList.remove('active'));
+    railMain.classList.add('active');
+  }
+});
 document.querySelectorAll('.type').forEach(btn => btn.onclick = () => { state.currentType = btn.dataset.type; document.querySelectorAll('.type').forEach(t => t.classList.remove('active')); btn.classList.add('active'); });
 $('compareMonth').addEventListener('change', (e) => { state.compareMonth = e.target.value || monthKey(todayIso()); renderCompare(); save(); });
+$('calendarMonth').addEventListener('change', (e) => {
+  state.calendarMonth = e.target.value || monthKey(todayIso());
+  renderCalendar();
+  save();
+});
+$('closureMonth').addEventListener('change', (e) => {
+  state.closureMonth = e.target.value || monthKey(todayIso());
+  renderClosureSummary();
+  save();
+});
 
-$('txForm').onsubmit = (e) => { e.preventDefault(); const description = $('desc').value.trim(); const amount = Number($('amount').value); const category = $('category').value.trim() || 'Geral'; const installments = Math.max(1, Number($('installments').value) || 1); if (!description || amount <= 0) return; if (installments > 1 && state.currentType === 'saida') { const each = Number((amount / installments).toFixed(2)); for (let i = 0; i < installments; i++) { const d = new Date(); d.setMonth(d.getMonth() + i); state.txs.push({ id: crypto.randomUUID(), type: 'saida', description, amount: each, category, date: d.toISOString().slice(0, 10), installment: `${i + 1}/${installments}` }); } } else { state.txs.push({ id: crypto.randomUUID(), type: state.currentType, description, amount, category, date: todayIso() }); } state.xp += 8; state.streak += 1; e.target.reset(); $('category').value = 'Geral'; $('installments').value = '1'; renderAll(); };
+const updateInstallmentUI = () => {
+  const btn = $('parcelToggle');
+  const wrap = $('installmentsWrap');
+  btn.classList.toggle('active', state.installmentMode);
+  btn.textContent = `Parcelar: ${state.installmentMode ? 'Ativado' : 'Desativado'}`;
+  wrap.classList.toggle('hidden', !state.installmentMode);
+};
+
+$('txForm').onsubmit = (e) => {
+  e.preventDefault();
+  const description = $('desc').value.trim();
+  const amount = Number($('amount').value);
+  const category = $('category').value.trim() || 'Geral';
+  const installments = state.installmentMode ? Math.max(2, Number($('installments').value) || 2) : 1;
+  if (!description || amount <= 0) return;
+
+  if (installments > 1) {
+    const totalCents = Math.round(amount * 100);
+    const baseCents = Math.floor(totalCents / installments);
+    const remainder = totalCents % installments;
+    for (let i = 0; i < installments; i++) {
+      const d = new Date();
+      d.setMonth(d.getMonth() + i);
+      const partCents = baseCents + (i < remainder ? 1 : 0);
+      const part = partCents / 100;
+      state.txs.push({
+        id: crypto.randomUUID(),
+        type: state.currentType,
+        description,
+        amount: part,
+        category,
+        date: d.toISOString().slice(0, 10),
+        installment: `${i + 1}/${installments}`,
+      });
+    }
+  } else {
+    state.txs.push({ id: crypto.randomUUID(), type: state.currentType, description, amount, category, date: todayIso() });
+  }
+
+  state.xp += 8;
+  state.streak += 1;
+  e.target.reset();
+  $('category').value = 'Geral';
+  $('installments').value = '2';
+  state.installmentMode = false;
+  updateInstallmentUI();
+  renderAll();
+};
 $('goalForm').onsubmit = (e) => { e.preventDefault(); const name = $('goalName').value.trim(); const target = Number($('goalTarget').value); const current = Number($('goalCurrent').value); if (!name || target <= 0 || current < 0) return; state.goals.push({ id: crypto.randomUUID(), name, target, current }); renderAll(); e.target.reset(); $('goalCurrent').value = '0'; };
 $('budgetForm').onsubmit = (e) => { e.preventDefault(); const category = $('budgetCategory').value.trim(); const limit = Number($('budgetLimit').value); if (!category || limit <= 0) return; const found = state.budgets.find(b => b.category.toLowerCase() === category.toLowerCase()); if (found) found.limit = limit; else state.budgets.push({ id: crypto.randomUUID(), category, limit }); renderAll(); e.target.reset(); };
 $('autoGoal').onclick = () => { const month = monthKey(todayIso()); const entradas = state.txs.filter(t => t.type === 'entrada' && monthKey(t.date) === month).reduce((a, t) => a + t.amount, 0); const saidas = state.txs.filter(t => t.type === 'saida' && monthKey(t.date) === month).reduce((a, t) => a + t.amount, 0); const target = Math.max(200, (entradas - saidas) * 0.3 || 300); state.goals.push({ id: crypto.randomUUID(), name: `Reserva ${month}`, target: Number(target.toFixed(2)), current: 0 }); renderAll(); };
 ['searchTx', 'filterType', 'filterCategory', 'filterFrom', 'filterTo'].forEach(id => $(id).addEventListener('input', renderTable));
-$('insightBtn').onclick = renderAll;
 $('clearAll').onclick = () => { if (confirm('Limpar todas as transações?')) { state.txs = []; state.xp = 0; state.streak = 0; renderAll(); } };
-$('exportCsv').onclick = exportCsv;
-$('importCsv').onchange = (e) => { const f = e.target.files[0]; if (f) importCsv(f); e.target.value = ''; };
-$('backupBtn').onclick = backupJson;
-$('restoreFile').onchange = (e) => { const f = e.target.files[0]; if (f) restoreJson(f); };
 $('logoutBtn').onclick = () => { localStorage.removeItem('pulse_auth'); location.href = 'login.html'; };
+$('railToggle').onclick = () => setRailCollapsed(!$('leftRail').classList.contains('collapsed'));
+$('closeMonthBtn').addEventListener('click', (e) => { e.preventDefault(); closeCurrentMonth(); });
+$('historyMoreBtn').onclick = () => { state.historyExpanded = !state.historyExpanded; renderTable(); };
+$('parcelToggle').onclick = () => {
+  state.installmentMode = !state.installmentMode;
+  updateInstallmentUI();
+};
+document.querySelectorAll('.rail-btn').forEach(btn => btn.onclick = () => {
+  if (!btn.dataset.page) return;
+  const page = btn.dataset.page || 'dashboard';
+  document.querySelectorAll('[data-page]').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll(`[data-page="${page}"]`).forEach(i => i.classList.add('active'));
+  setPage(page);
+  document.querySelectorAll('.rail-btn').forEach(i => i.classList.remove('active'));
+  btn.classList.add('active');
+  const targetId = btn.dataset.target;
+  const target = targetId ? $(targetId) : null;
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+const railState = localStorage.getItem('pulse_left_rail_collapsed');
+setRailCollapsed(railState === null ? false : railState === '1');
+setPage('dashboard');
+updateInstallmentUI();
 
 renderAll();
 
