@@ -687,13 +687,19 @@ body { overflow-x: hidden; }
 
 
 /* Users actions buttons */
+#usersPage .grid-2 {
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
 #usersPage .panel {
   overflow: hidden;
+  min-width: 0;
 }
 
 #usersPage table {
   width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 #usersPage th:nth-child(1),
@@ -708,9 +714,10 @@ body { overflow-x: hidden; }
 #usersPage td:nth-child(1),
 #usersPage td:nth-child(2),
 #usersPage td:nth-child(3) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-break: break-word;
 }
 
 #usersPage td:nth-child(4) {
