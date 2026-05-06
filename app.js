@@ -573,3 +573,4 @@ document.addEventListener('click', (e) => {
   window.location.replace('login.html');
 });
 
+

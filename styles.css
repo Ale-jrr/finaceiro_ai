@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --bg: #0f172a;
   --bg2: #111827;
   --glass: rgba(255, 255, 255, 0.06);
@@ -136,19 +136,6 @@ body {
   color: #fff;
   background: #ef4444;
 }
-.rail-footer {
-  display: flex;
-  justify-content: space-between;
-  padding: 0 4px;
-}
-.rail-mini {
-  width: 38px;
-  height: 30px;
-  border-radius: 10px;
-  border: 1px solid #475569;
-  background: #334155;
-  color: #e2e8f0;
-}
 .rail-user {
   display: flex;
   align-items: center;
@@ -189,15 +176,7 @@ body {
 .left-rail.collapsed .rail-toggle {
   padding: 6px;
 }
-.left-rail.collapsed .rail-footer {
-  padding: 0;
-  gap: 6px;
-}
-.left-rail.collapsed .rail-mini {
-  width: 30px;
-  height: 30px;
-}
-.sidebar { display: none; }
+.left-rail.collapsed .left-rail.collapsed .sidebar { display: none; }
 .sidebar > div:first-child { display: flex; align-items: center; gap: 12px; }
 .brand { font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 700; }
 .brand span { color: var(--cyan); }
@@ -611,7 +590,7 @@ body { overflow-x: hidden; }
   }
 
   #historySection::after {
-    content: '↔ arraste para ver mais';
+    content: 'â†” arraste para ver mais';
     position: absolute;
     right: 10px;
     bottom: 10px;
@@ -705,3 +684,4 @@ body { overflow-x: hidden; }
 .rail-logout:hover {
   background: linear-gradient(180deg, #7f1d1d, #4a1313);
 }
+
