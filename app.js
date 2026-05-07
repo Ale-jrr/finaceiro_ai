@@ -648,8 +648,59 @@ function renderCalendar() {
     div.innerHTML = `<b>${String(d).padStart(2, '0')}</b><small>+${ent.toFixed(2).replace('.', ',')} / -${sai.toFixed(2).replace('.', ',')}</small>`;
     if (sai > ent) div.classList.add('bad');
     else if (ent > 0 || sai > 0) div.classList.add('good');
+    div.style.cursor = 'pointer';
+    div.title = `Clique para lançar/editar ${String(d).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+    div.onclick = () => openCalendarDayEditor(date);
     cal.appendChild(div);
   }
+}
+
+function openCalendarDayEditor(date) {
+  const readable = parseIsoLocal(date).toLocaleDateString('pt-BR');
+  const action = prompt(
+    `Dia ${readable}\n` +
+    `1 = Nova Entrada\n` +
+    `2 = Nova Saída\n` +
+    `3 = Excluir lançamentos do dia`,
+    '1'
+  );
+  if (!action) return;
+
+  if (action === '3') {
+    const count = state.txs.filter(t => t.date === date).length;
+    if (!count) {
+      alert('Não há lançamentos neste dia.');
+      return;
+    }
+    if (confirm(`Excluir ${count} lançamento(s) do dia ${readable}?`)) {
+      state.txs = state.txs.filter(t => t.date !== date);
+      renderAll();
+    }
+    return;
+  }
+
+  const type = action === '2' ? 'saida' : 'entrada';
+  const description = prompt(`Descrição da ${type === 'saida' ? 'saída' : 'entrada'}:`, type === 'saida' ? 'Gasto manual' : 'Entrada manual');
+  if (!description || !description.trim()) return;
+  const rawAmount = prompt('Valor (R$):', '0,00');
+  if (!rawAmount) return;
+  const normalized = String(rawAmount).trim().replace(/\s/g, '').replace(',', '.');
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    alert('Valor inválido.');
+    return;
+  }
+  const category = (prompt('Categoria:', 'Geral') || 'Geral').trim() || 'Geral';
+
+  state.txs.push({
+    id: crypto.randomUUID(),
+    type,
+    description: description.trim(),
+    amount,
+    category,
+    date
+  });
+  renderAll();
 }
 function renderObjective() { const open = state.goals.filter(g => g.current < g.target).sort((a, b) => (b.target - b.current) - (a.target - a.current))[0]; $('objectiveText').textContent = open ? `Modo objetivo: foco em "${open.name}". Falta ${money.format(open.target - open.current)}.` : 'Crie uma meta para ativar o modo objetivo.'; }
 
