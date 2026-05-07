@@ -24,6 +24,24 @@ const sb = hasSupabase ? (window.__sbClient || (window.__sbClient = window.supab
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
 }))) : null;
 const chartState = { months: [], pointsX: [] };
+const USER_STATE_KEYS = [
+  'pulse_txs',
+  'pulse_goals',
+  'pulse_budgets',
+  'pulse_ach',
+  'pulse_xp',
+  'pulse_streak',
+  'pulse_compare_month',
+  'pulse_calendar_month',
+  'pulse_closure_month',
+  'pulse_month_closures',
+  'pulse_ignored_recurring',
+  'pulse_remote_updated_at',
+  'pulse_remote_snapshot_hash'
+];
+function clearLocalUserState() {
+  USER_STATE_KEYS.forEach((k) => localStorage.removeItem(k));
+}
 
 async function syncAccountsFromSupabase() {
   if (!sb) return;
@@ -907,7 +925,7 @@ $('autoGoal').onclick = () => {
 if ($('userForm')) $('userForm').onsubmit = (e) => { e.preventDefault(); const me = currentAccount(); if (!me || !me.isAdmin) return; const name = $('userName').value.trim(); const email = $('userEmail').value.trim().toLowerCase(); const password = $('userPassword').value; if (!name || !email || password.length < 6) return; if (state.accounts.some(a => a.email === email)) { alert('Já existe usuário com esse e-mail.'); return; } const newAcc = { id: crypto.randomUUID(), name, email, password, isAdmin: false, isBlocked: false, createdAt: new Date().toISOString() }; state.accounts.push(newAcc); upsertAccountToSupabase(newAcc); e.target.reset(); renderAll(); };
 ['searchTx', 'filterType', 'filterCategory', 'filterFrom', 'filterTo'].forEach(id => $(id).addEventListener('input', renderTable));
 $('clearAll').onclick = () => { if (confirm('Limpar todas as transações?')) { state.txs = []; state.xp = 0; state.streak = 0; renderAll(); } };
-const doLogout = () => { localStorage.removeItem('pulse_auth'); localStorage.removeItem('pulse_user'); window.location.replace('login.html'); };
+const doLogout = () => { clearLocalUserState(); localStorage.removeItem('pulse_auth'); localStorage.removeItem('pulse_user'); window.location.replace('login.html'); };
 if ($('logoutBtn')) $('logoutBtn').onclick = doLogout;
 if ($('railLogoutBtn')) $('railLogoutBtn').onclick = doLogout;
 if ($('railLogoutTextBtn')) $('railLogoutTextBtn').onclick = doLogout;
@@ -963,6 +981,7 @@ document.addEventListener('click', (e) => {
   const target = e.target && e.target.closest ? e.target.closest('#railLogoutTextBtn, #railLogoutBtn') : null;
   if (!target) return;
   e.preventDefault();
+  clearLocalUserState();
   localStorage.removeItem('pulse_auth');
   localStorage.removeItem('pulse_user');
   window.location.replace('login.html');

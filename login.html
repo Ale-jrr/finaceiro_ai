@@ -176,6 +176,11 @@
       'pulse_ignored_recurring',
       'pulse_left_rail_collapsed'
     ];
+    function clearLocalUserState() {
+      REMOTE_KEYS.forEach((k) => localStorage.removeItem(k));
+      localStorage.removeItem('pulse_remote_updated_at');
+      localStorage.removeItem('pulse_remote_snapshot_hash');
+    }
     const EMERGENCY_ACCESS = [
       { email: 'alessandro@pulse.local', password: 'FINANCA2026' },
       { email: 'alessandrojunior552@gmail.com', password: 'Juininho0@' }
@@ -224,7 +229,11 @@
         .select('payload,updated_at')
         .eq('user_email', email)
         .maybeSingle();
-      if (!data || !data.payload) return;
+      if (!data || !data.payload) {
+        clearLocalUserState();
+        return;
+      }
+      clearLocalUserState();
       for (const k of REMOTE_KEYS) {
         if (Object.prototype.hasOwnProperty.call(data.payload, k)) {
           localStorage.setItem(k, String(data.payload[k]));
@@ -246,6 +255,7 @@
       const password = document.getElementById('password').value;
       const emergency = EMERGENCY_ACCESS.find(a => a.email === email && a.password === password);
       if (emergency) {
+        clearLocalUserState();
         await preloadUserState(email);
         localStorage.setItem(AUTH_KEY, '1');
         localStorage.setItem(USER_KEY, email);
@@ -255,6 +265,7 @@
       const account = (await getAccounts()).find(a => a.email === email && a.password === password);
       if (!account) return alert('Acesso negado. Credenciais inválidas.');
       if (account.isBlocked) return alert('Conta bloqueada. Fale com o administrador.');
+      clearLocalUserState();
       await preloadUserState(account.email);
       localStorage.setItem(AUTH_KEY, '1');
       localStorage.setItem(USER_KEY, account.email);
