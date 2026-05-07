@@ -803,6 +803,9 @@ $('txForm').onsubmit = (e) => {
   const description = $('desc').value.trim();
   const amount = Number($('amount').value);
   const category = $('category').value.trim() || 'Geral';
+  const activeTypeBtn = document.querySelector('.type.active');
+  const txType = (activeTypeBtn && activeTypeBtn.dataset && activeTypeBtn.dataset.type) ? activeTypeBtn.dataset.type : state.currentType;
+  state.currentType = txType === 'saida' ? 'saida' : 'entrada';
   const installments = state.installmentMode ? Math.max(2, Number($('installments').value) || 2) : 1;
   if (!description || amount <= 0) return;
 
@@ -817,7 +820,7 @@ $('txForm').onsubmit = (e) => {
       const part = partCents / 100;
       state.txs.push({
         id: crypto.randomUUID(),
-        type: state.currentType,
+        type: txType,
         description,
         amount: part,
         category,
@@ -826,7 +829,7 @@ $('txForm').onsubmit = (e) => {
       });
     }
   } else {
-    state.txs.push({ id: crypto.randomUUID(), type: state.currentType, description, amount, category, date: todayIso() });
+    state.txs.push({ id: crypto.randomUUID(), type: txType, description, amount, category, date: todayIso() });
   }
 
   state.xp += 8;
