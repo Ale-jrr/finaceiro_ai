@@ -378,7 +378,7 @@ function renderCalendar() {
     const sai = state.txs.filter(t => t.date === date && t.type === 'saida').reduce((a, t) => a + t.amount, 0);
     const div = document.createElement('div');
     div.className = 'cal-day';
-    div.innerHTML = `<b>${String(d).padStart(2, '0')}</b><small>+${ent.toFixed(0)} / -${sai.toFixed(0)}</small>`;
+    div.innerHTML = `<b>${String(d).padStart(2, '0')}</b><small>+${ent.toFixed(2).replace('.', ',')} / -${sai.toFixed(2).replace('.', ',')}</small>`;
     if (sai > ent) div.classList.add('bad');
     else if (ent > 0 || sai > 0) div.classList.add('good');
     cal.appendChild(div);
