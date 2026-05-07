@@ -65,7 +65,9 @@
     ];
 
     const hasSb = Boolean(window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY);
-    const sb = hasSb ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null;
+    const sb = hasSb ? (window.__sbClient || (window.__sbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    }))) : null;
 
     function localAccounts() {
       return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]');
@@ -85,13 +87,22 @@
       }
 
       if (sb) {
-        await sb.from('app_users').upsert(admin, { onConflict: 'email' });
+        let { error } = await sb.from('app_users').upsert(admin, { onConflict: 'email' });
+        if (error) {
+          await sb.from('app_users').upsert({ name: admin.name, email: admin.email, password: admin.password, is_admin: true }, { onConflict: 'email' });
+        }
       }
     }
 
     async function getAccounts() {
       if (!sb) return localAccounts();
-      const { data } = await sb.from('app_users').select('id,name,email,password,is_admin,is_blocked,created_at');
+      let data = null;
+      let error = null;
+      ({ data, error } = await sb.from('app_users').select('id,name,email,password,is_admin,is_blocked,created_at'));
+      if (error) {
+        ({ data, error } = await sb.from('app_users').select('id,name,email,password,is_admin,created_at'));
+      }
+      if (error) return localAccounts();
       const mapped = (data || []).map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, isAdmin: !!u.is_admin, isBlocked: !!u.is_blocked, createdAt: u.created_at }));
       if (mapped.length) setLocalAccounts(mapped);
       return mapped.length ? mapped : localAccounts();
@@ -152,7 +163,10 @@
       if (existing.some(a => a.email === email)) return alert('Já existe conta com esse e-mail.');
 
       if (sb) {
-        const { error } = await sb.from('app_users').insert({ name, email, password, is_admin: false, is_blocked: false });
+        let { error } = await sb.from('app_users').insert({ name, email, password, is_admin: false, is_blocked: false });
+        if (error) {
+          ({ error } = await sb.from('app_users').insert({ name, email, password, is_admin: false }));
+        }
         if (error) return alert('Erro ao criar conta no banco.');
       }
 

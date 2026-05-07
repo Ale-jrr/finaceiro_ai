@@ -20,18 +20,28 @@ const ADMIN_ONLY_EMAIL = 'alessandro@pulse.local';
 const $ = (id) => document.getElementById(id);
 
 const hasSupabase = Boolean(window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY);
-const sb = hasSupabase ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null;
+const sb = hasSupabase ? (window.__sbClient || (window.__sbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+}))) : null;
 
 async function syncAccountsFromSupabase() {
   if (!sb) return;
-  const { data } = await sb.from('app_users').select('id,name,email,password,is_admin,is_blocked,created_at');
-  if (!data) return;
+  let data = null;
+  let error = null;
+  ({ data, error } = await sb.from('app_users').select('id,name,email,password,is_admin,is_blocked,created_at'));
+  if (error) {
+    ({ data, error } = await sb.from('app_users').select('id,name,email,password,is_admin,created_at'));
+  }
+  if (error || !data) return;
   state.accounts = data.map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, isAdmin: !!u.is_admin, isBlocked: !!u.is_blocked, createdAt: u.created_at }));
 }
 
 async function upsertAccountToSupabase(acc) {
   if (!sb) return;
-  await sb.from('app_users').upsert({ name: acc.name, email: acc.email, password: acc.password, is_admin: !!acc.isAdmin, is_blocked: !!acc.isBlocked }, { onConflict: 'email' });
+  let { error } = await sb.from('app_users').upsert({ name: acc.name, email: acc.email, password: acc.password, is_admin: !!acc.isAdmin, is_blocked: !!acc.isBlocked }, { onConflict: 'email' });
+  if (error) {
+    await sb.from('app_users').upsert({ name: acc.name, email: acc.email, password: acc.password, is_admin: !!acc.isAdmin }, { onConflict: 'email' });
+  }
 }
 
 async function deleteAccountFromSupabase(email) {

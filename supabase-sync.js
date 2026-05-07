@@ -21,7 +21,9 @@
   if (!isAuthed || !userEmail || !hasConfig) return;
 
   const { createClient } = window.supabase;
-  const client = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  const client = window.__sbClient || (window.__sbClient = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  }));
 
   const SNAPSHOT_HASH_KEY = 'pulse_remote_snapshot_hash';
   const REMOTE_UPDATED_AT_KEY = 'pulse_remote_updated_at';
