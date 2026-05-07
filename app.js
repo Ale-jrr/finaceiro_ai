@@ -23,7 +23,7 @@ const hasSupabase = Boolean(window.supabase && window.SUPABASE_URL && window.SUP
 const sb = hasSupabase ? (window.__sbClient || (window.__sbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
 }))) : null;
-const chartState = { months: [], stepX: 1, pLeft: 0 };
+const chartState = { months: [], pointsX: [] };
 
 async function syncAccountsFromSupabase() {
   if (!sb) return;
@@ -487,8 +487,7 @@ function drawChart() {
     saida: saidas[i],
     saldo: entradas[i] - saidas[i]
   }));
-  chartState.stepX = stepX;
-  chartState.pLeft = pLeft;
+  chartState.pointsX = monthNames.map((_, i) => xFor(i));
 
   const yFor = (v) => pTop + (1 - v / maxVal) * plotH;
   const xFor = (i) => pLeft + i * stepX;
@@ -546,9 +545,17 @@ function bindChartDetails() {
   c.dataset.bound = '1';
   c.addEventListener('click', (e) => {
     const rect = c.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const approx = Math.round((x - chartState.pLeft) / (chartState.stepX || 1));
-    const idx = Math.max(0, Math.min(11, approx));
+    const scaleX = c.width / rect.width;
+    const xCanvas = (e.clientX - rect.left) * scaleX;
+    let idx = 0;
+    let best = Number.POSITIVE_INFINITY;
+    chartState.pointsX.forEach((px, i) => {
+      const d = Math.abs(px - xCanvas);
+      if (d < best) {
+        best = d;
+        idx = i;
+      }
+    });
     const m = chartState.months[idx];
     if (!m) return;
     const txMonth = String(idx + 1).padStart(2, '0');
