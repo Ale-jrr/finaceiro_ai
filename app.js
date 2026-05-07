@@ -26,22 +26,14 @@ const sb = hasSupabase ? (window.__sbClient || (window.__sbClient = window.supab
 
 async function syncAccountsFromSupabase() {
   if (!sb) return;
-  let data = null;
-  let error = null;
-  ({ data, error } = await sb.from('app_users').select('id,name,email,password,is_admin,is_blocked,created_at'));
-  if (error) {
-    ({ data, error } = await sb.from('app_users').select('id,name,email,password,is_admin,created_at'));
-  }
+  const { data, error } = await sb.from('app_users').select('id,name,email,password,is_admin,created_at');
   if (error || !data) return;
-  state.accounts = data.map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, isAdmin: !!u.is_admin, isBlocked: !!u.is_blocked, createdAt: u.created_at }));
+  state.accounts = data.map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, isAdmin: !!u.is_admin, isBlocked: false, createdAt: u.created_at }));
 }
 
 async function upsertAccountToSupabase(acc) {
   if (!sb) return;
-  let { error } = await sb.from('app_users').upsert({ name: acc.name, email: acc.email, password: acc.password, is_admin: !!acc.isAdmin, is_blocked: !!acc.isBlocked }, { onConflict: 'email' });
-  if (error) {
-    await sb.from('app_users').upsert({ name: acc.name, email: acc.email, password: acc.password, is_admin: !!acc.isAdmin }, { onConflict: 'email' });
-  }
+  await sb.from('app_users').upsert({ name: acc.name, email: acc.email, password: acc.password, is_admin: !!acc.isAdmin }, { onConflict: 'email' });
 }
 
 async function deleteAccountFromSupabase(email) {
