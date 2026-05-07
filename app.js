@@ -291,6 +291,14 @@ function renderTopExpenses() {
   const canvas = $('topExpensesChart');
   const explain = $('topExpensesExplain');
   if (!canvas || !explain) return;
+  const rect = canvas.getBoundingClientRect();
+  const ratio = Math.max(1, window.devicePixelRatio || 1);
+  const targetW = Math.max(1000, Math.round(rect.width * ratio));
+  const targetH = Math.max(300, Math.round((rect.height || 300) * ratio));
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
 
   const m = monthKey(todayIso());
   const spentByCategory = new Map();
@@ -325,24 +333,25 @@ function renderTopExpenses() {
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = '#131b2c';
   ctx.fillRect(0, 0, w, h);
 
   if (!rows.length) {
     ctx.fillStyle = '#9fb0d0';
-    ctx.font = '600 14px Manrope';
-    ctx.fillText('Sem dados de categorias no mês atual.', 22, 34);
+    ctx.font = `${Math.round(14 * ratio)}px Manrope`;
+    ctx.fillText('Sem dados de categorias no mês atual.', 22 * ratio, 34 * ratio);
     explain.textContent = 'Crie orçamentos e registre saídas para ver o comparativo por categoria.';
     return;
   }
 
   const max = Math.max(...rows.map(i => Math.max(i.planned, i.actual)), 1);
-  const left = 170;
-  const right = 26;
+  const left = 170 * ratio;
+  const right = 26 * ratio;
   const barArea = w - left - right;
-  const rowH = 46;
-  const startY = 26;
+  const rowH = 46 * ratio;
+  const startY = 26 * ratio;
 
   rows.forEach((item, idx) => {
     const y = startY + idx * rowH;
@@ -351,35 +360,35 @@ function renderTopExpenses() {
     const label = item.category.length > 18 ? `${item.category.slice(0, 18)}...` : item.category;
 
     ctx.fillStyle = '#cbd5e1';
-    ctx.font = '700 12px Manrope';
-    ctx.fillText(label, 16, y + 22);
+    ctx.font = `${Math.round(12 * ratio)}px Manrope`;
+    ctx.fillText(label, 16 * ratio, y + (22 * ratio));
 
     ctx.fillStyle = '#23324f';
-    ctx.fillRect(left, y + 3, barArea, 12);
+    ctx.fillRect(left, y + (3 * ratio), barArea, 12 * ratio);
     ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(left, y + 3, plannedW, 12);
+    ctx.fillRect(left, y + (3 * ratio), plannedW, 12 * ratio);
     ctx.fillStyle = '#e2e8f0';
-    ctx.font = '600 11px Manrope';
-    ctx.fillText(money.format(item.planned), left + Math.min(plannedW + 8, barArea - 88), y + 13);
+    ctx.font = `${Math.round(11 * ratio)}px Manrope`;
+    ctx.fillText(money.format(item.planned), left + Math.min(plannedW + (8 * ratio), barArea - (88 * ratio)), y + (13 * ratio));
 
     ctx.fillStyle = '#23324f';
-    ctx.fillRect(left, y + 19, barArea, 12);
+    ctx.fillRect(left, y + (19 * ratio), barArea, 12 * ratio);
     ctx.fillStyle = '#1d4ed8';
-    ctx.fillRect(left, y + 19, actualW, 12);
+    ctx.fillRect(left, y + (19 * ratio), actualW, 12 * ratio);
     ctx.fillStyle = '#e2e8f0';
-    ctx.fillText(money.format(item.actual), left + Math.min(actualW + 8, barArea - 88), y + 29);
+    ctx.fillText(money.format(item.actual), left + Math.min(actualW + (8 * ratio), barArea - (88 * ratio)), y + (29 * ratio));
   });
 
   const legendY = startY + rows.length * rowH + 10;
   ctx.fillStyle = '#f59e0b';
-  ctx.fillRect(16, legendY, 12, 8);
+  ctx.fillRect(16 * ratio, legendY, 12 * ratio, 8 * ratio);
   ctx.fillStyle = '#cbd5e1';
-  ctx.font = '600 11px Manrope';
-  ctx.fillText('Orçado', 32, legendY + 8);
+  ctx.font = `${Math.round(11 * ratio)}px Manrope`;
+  ctx.fillText('Orçado', 32 * ratio, legendY + (8 * ratio));
   ctx.fillStyle = '#1d4ed8';
-  ctx.fillRect(92, legendY, 12, 8);
+  ctx.fillRect(92 * ratio, legendY, 12 * ratio, 8 * ratio);
   ctx.fillStyle = '#cbd5e1';
-  ctx.fillText('Realizado', 108, legendY + 8);
+  ctx.fillText('Realizado', 108 * ratio, legendY + (8 * ratio));
 
   const totalPlanned = rows.reduce((a, i) => a + i.planned, 0);
   const totalActual = rows.reduce((a, i) => a + i.actual, 0);
@@ -454,8 +463,18 @@ function closeCurrentMonth() {
 
 function drawChart() {
   const c = $('chart');
+  if (!c) return;
   const ctx = c.getContext('2d');
-  if (!c || !ctx) return;
+  if (!ctx) return;
+  const rect = c.getBoundingClientRect();
+  const ratio = Math.max(1, window.devicePixelRatio || 1);
+  const targetW = Math.max(1000, Math.round(rect.width * ratio));
+  const targetH = Math.max(280, Math.round((rect.height || 280) * ratio));
+  if (c.width !== targetW || c.height !== targetH) {
+    c.width = targetW;
+    c.height = targetH;
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, c.width, c.height);
 
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -472,10 +491,10 @@ function drawChart() {
     if (t.type === 'saida') saidas[m] += t.amount;
   });
 
-  const pLeft = 58;
-  const pRight = 22;
-  const pTop = 24;
-  const pBottom = 42;
+  const pLeft = 58 * ratio;
+  const pRight = 22 * ratio;
+  const pTop = 24 * ratio;
+  const pBottom = 42 * ratio;
   const plotW = c.width - pLeft - pRight;
   const plotH = c.height - pTop - pBottom;
   const maxVal = Math.max(1, ...entradas, ...saidas);
@@ -521,7 +540,7 @@ function drawChart() {
       ctx.fill();
       if (v > 0) {
         ctx.fillStyle = '#cbd5e1';
-        ctx.font = '600 10px Manrope';
+    ctx.font = `${Math.round(10 * ratio)}px Manrope`;
         const txt = money.format(v).replace(',00', '');
         ctx.fillText(txt, x - 16, y - 8);
       }
@@ -534,7 +553,7 @@ function drawChart() {
   ctx.fillStyle = '#94a3b8';
   ctx.font = '600 10px Manrope';
   monthNames.forEach((m, i) => {
-    ctx.fillText(m, xFor(i) - 10, c.height - 16);
+    ctx.fillText(m, xFor(i) - (10 * ratio), c.height - (16 * ratio));
   });
 }
 
