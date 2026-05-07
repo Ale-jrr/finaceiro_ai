@@ -454,70 +454,79 @@ function closeCurrentMonth() {
 function drawChart() {
   const c = $('chart');
   const ctx = c.getContext('2d');
+  if (!c || !ctx) return;
   ctx.clearRect(0, 0, c.width, c.height);
-  const currentMonth = monthKey(todayIso());
-  const [yy, mm] = currentMonth.split('-').map(Number);
-  const daysInMonth = new Date(yy, mm, 0).getDate();
-  const p = 34;
-  const plotW = c.width - p * 2;
-  const plotH = c.height - p * 2;
 
-  const entradas = [];
-  const saidas = [];
-  const saldoAcc = [];
-  let acc = 0;
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dtx = state.txs.filter(t => parseIsoLocal(t.date).getDate() === day && monthKey(t.date) === currentMonth);
-    const ent = dtx.filter(t => t.type === 'entrada').reduce((a, t) => a + t.amount, 0);
-    const sai = dtx.filter(t => t.type === 'saida').reduce((a, t) => a + t.amount, 0);
-    acc += ent - sai;
-    entradas.push(ent);
-    saidas.push(sai);
-    saldoAcc.push(acc);
-  }
+  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const year = Number(todayIso().slice(0, 4));
+  const entradas = Array(12).fill(0);
+  const saidas = Array(12).fill(0);
 
-  const maxBar = Math.max(1, ...entradas, ...saidas);
-  const minLine = Math.min(0, ...saldoAcc);
-  const maxLine = Math.max(1, ...saldoAcc);
+  state.txs.forEach((t) => {
+    const d = parseIsoLocal(t.date);
+    if (!(d instanceof Date) || Number.isNaN(d.getTime())) return;
+    if (d.getFullYear() !== year) return;
+    const m = d.getMonth();
+    if (t.type === 'entrada') entradas[m] += t.amount;
+    if (t.type === 'saida') saidas[m] += t.amount;
+  });
+
+  const pLeft = 58;
+  const pRight = 22;
+  const pTop = 24;
+  const pBottom = 42;
+  const plotW = c.width - pLeft - pRight;
+  const plotH = c.height - pTop - pBottom;
+  const maxVal = Math.max(1, ...entradas, ...saidas);
+  const stepX = plotW / 11;
+
+  const yFor = (v) => pTop + (1 - v / maxVal) * plotH;
+  const xFor = (i) => pLeft + i * stepX;
 
   ctx.strokeStyle = '#334155';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
-    const y = p + (plotH / 4) * i;
+    const y = pTop + (plotH / 4) * i;
     ctx.beginPath();
-    ctx.moveTo(p, y);
-    ctx.lineTo(c.width - p, y);
+    ctx.moveTo(pLeft, y);
+    ctx.lineTo(c.width - pRight, y);
     ctx.stroke();
   }
 
-  const stepX = plotW / daysInMonth;
-  const barW = Math.max(2, stepX * 0.3);
+  const drawSeries = (arr, color) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    arr.forEach((v, i) => {
+      const x = xFor(i);
+      const y = yFor(v);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    arr.forEach((v, i) => {
+      const x = xFor(i);
+      const y = yFor(v);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+      if (v > 0) {
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '600 10px Manrope';
+        const txt = money.format(v).replace(',00', '');
+        ctx.fillText(txt, x - 16, y - 8);
+      }
+    });
+  };
 
-  for (let i = 0; i < daysInMonth; i++) {
-    const xMid = p + i * stepX + stepX / 2;
-    const entH = (entradas[i] / maxBar) * (plotH * 0.35);
-    const saiH = (saidas[i] / maxBar) * (plotH * 0.35);
-    const baseY = p + plotH;
+  drawSeries(entradas, '#f59e0b');
+  drawSeries(saidas, '#1d4ed8');
 
-    if (entH > 0) {
-      ctx.fillStyle = '#4ade80';
-      ctx.fillRect(xMid - barW - 1, baseY - entH, barW, entH);
-    }
-    if (saiH > 0) {
-      ctx.fillStyle = '#f87171';
-      ctx.fillRect(xMid + 1, baseY - saiH, barW, saiH);
-    }
-  }
-
-  ctx.strokeStyle = '#b8922e';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  saldoAcc.forEach((v, i) => {
-    const x = p + i * stepX + stepX / 2;
-    const y = p + (1 - (v - minLine) / (maxLine - minLine || 1)) * (plotH * 0.6);
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '600 10px Manrope';
+  monthNames.forEach((m, i) => {
+    ctx.fillText(m, xFor(i) - 10, c.height - 16);
   });
-  ctx.stroke();
 }
 
 function filteredTxs() {
