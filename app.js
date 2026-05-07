@@ -478,18 +478,33 @@ function drawChart() {
   ctx.clearRect(0, 0, c.width, c.height);
 
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  const year = Number(todayIso().slice(0, 4));
-  const entradas = Array(12).fill(0);
-  const saidas = Array(12).fill(0);
+  const anchor = parseIsoLocal(todayIso());
+  anchor.setDate(1);
+  const buckets = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    buckets.push({
+      key,
+      short: `${monthNames[d.getMonth()]}/${String(d.getFullYear()).slice(-2)}`,
+      entrada: 0,
+      saida: 0,
+    });
+  }
+  const byKey = new Map(buckets.map((b) => [b.key, b]));
 
   state.txs.forEach((t) => {
     const d = parseIsoLocal(t.date);
     if (!(d instanceof Date) || Number.isNaN(d.getTime())) return;
-    if (d.getFullYear() !== year) return;
-    const m = d.getMonth();
-    if (t.type === 'entrada') entradas[m] += t.amount;
-    if (t.type === 'saida') saidas[m] += t.amount;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const bucket = byKey.get(key);
+    if (!bucket) return;
+    if (t.type === 'entrada') bucket.entrada += t.amount;
+    if (t.type === 'saida') bucket.saida += t.amount;
   });
+
+  const entradas = buckets.map((b) => b.entrada);
+  const saidas = buckets.map((b) => b.saida);
 
   const pLeft = 58 * ratio;
   const pRight = 22 * ratio;
@@ -499,14 +514,15 @@ function drawChart() {
   const plotH = c.height - pTop - pBottom;
   const maxVal = Math.max(1, ...entradas, ...saidas);
   const stepX = plotW / 11;
-  chartState.months = monthNames.map((name, i) => ({
+  chartState.months = buckets.map((b, i) => ({
     index: i,
-    name,
+    name: b.short,
+    key: b.key,
     entrada: entradas[i],
     saida: saidas[i],
     saldo: entradas[i] - saidas[i]
   }));
-  chartState.pointsX = monthNames.map((_, i) => xFor(i));
+  chartState.pointsX = buckets.map((_, i) => xFor(i));
 
   const yFor = (v) => pTop + (1 - v / maxVal) * plotH;
   const xFor = (i) => pLeft + i * stepX;
@@ -552,8 +568,8 @@ function drawChart() {
 
   ctx.fillStyle = '#94a3b8';
   ctx.font = '600 10px Manrope';
-  monthNames.forEach((m, i) => {
-    ctx.fillText(m, xFor(i) - (10 * ratio), c.height - (16 * ratio));
+  buckets.forEach((b, i) => {
+    ctx.fillText(b.short, xFor(i) - (14 * ratio), c.height - (16 * ratio));
   });
 }
 
@@ -577,8 +593,7 @@ function bindChartDetails() {
     });
     const m = chartState.months[idx];
     if (!m) return;
-    const txMonth = String(idx + 1).padStart(2, '0');
-    const txCount = state.txs.filter(t => t.date.startsWith(`${todayIso().slice(0, 4)}-${txMonth}-`)).length;
+    const txCount = state.txs.filter(t => String(t.date || '').startsWith(`${m.key}-`)).length;
     detail.textContent = `${m.name}: entradas ${money.format(m.entrada)}, saídas ${money.format(m.saida)}, saldo ${money.format(m.saldo)} (${txCount} lançamentos).`;
   });
 }
