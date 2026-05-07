@@ -96,6 +96,10 @@
     try { await pushToSupabase(); } finally { inFlight = false; }
   };
 
+  // Expose manual sync trigger for immediate persistence after local save.
+  window.pulseSyncNow = safePush;
+  window.addEventListener('pulse:state-changed', safePush);
+
   pullFromSupabase().finally(() => {
     safePush();
     setInterval(safePush, 4000);

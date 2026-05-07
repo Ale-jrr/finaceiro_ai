@@ -93,6 +93,10 @@ function save() {
   localStorage.setItem('pulse_month_closures', JSON.stringify(state.closures));
   localStorage.setItem('pulse_ignored_recurring', JSON.stringify(state.ignoredRecurring));
   localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
+  window.dispatchEvent(new Event('pulse:state-changed'));
+  if (typeof window.pulseSyncNow === 'function') {
+    window.pulseSyncNow();
+  }
 }
 
 function summary() {
