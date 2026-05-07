@@ -23,6 +23,7 @@ const hasSupabase = Boolean(window.supabase && window.SUPABASE_URL && window.SUP
 const sb = hasSupabase ? (window.__sbClient || (window.__sbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
 }))) : null;
+const chartState = { months: [], stepX: 1, pLeft: 0 };
 
 async function syncAccountsFromSupabase() {
   if (!sb) return;
@@ -479,6 +480,15 @@ function drawChart() {
   const plotH = c.height - pTop - pBottom;
   const maxVal = Math.max(1, ...entradas, ...saidas);
   const stepX = plotW / 11;
+  chartState.months = monthNames.map((name, i) => ({
+    index: i,
+    name,
+    entrada: entradas[i],
+    saida: saidas[i],
+    saldo: entradas[i] - saidas[i]
+  }));
+  chartState.stepX = stepX;
+  chartState.pLeft = pLeft;
 
   const yFor = (v) => pTop + (1 - v / maxVal) * plotH;
   const xFor = (i) => pLeft + i * stepX;
@@ -526,6 +536,24 @@ function drawChart() {
   ctx.font = '600 10px Manrope';
   monthNames.forEach((m, i) => {
     ctx.fillText(m, xFor(i) - 10, c.height - 16);
+  });
+}
+
+function bindChartDetails() {
+  const c = $('chart');
+  const detail = $('cashflowDetail');
+  if (!c || !detail || c.dataset.bound === '1') return;
+  c.dataset.bound = '1';
+  c.addEventListener('click', (e) => {
+    const rect = c.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const approx = Math.round((x - chartState.pLeft) / (chartState.stepX || 1));
+    const idx = Math.max(0, Math.min(11, approx));
+    const m = chartState.months[idx];
+    if (!m) return;
+    const txMonth = String(idx + 1).padStart(2, '0');
+    const txCount = state.txs.filter(t => t.date.startsWith(`${todayIso().slice(0, 4)}-${txMonth}-`)).length;
+    detail.textContent = `${m.name}: entradas ${money.format(m.entrada)}, saídas ${money.format(m.saida)}, saldo ${money.format(m.saldo)} (${txCount} lançamentos).`;
   });
 }
 
@@ -819,6 +847,7 @@ async function initApp() {
   setRailCollapsed(railState === null ? false : railState === '1');
   setPage('dashboard');
   updateInstallmentUI();
+  bindChartDetails();
   renderAll();
 }
 initApp();
