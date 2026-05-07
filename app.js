@@ -292,17 +292,33 @@ function renderTopExpenses() {
   if (!canvas || !explain) return;
 
   const m = monthKey(todayIso());
-  const byDesc = new Map();
+  const spentByCategory = new Map();
   state.txs
     .filter(t => t.type === 'saida' && monthKey(t.date) === m)
     .forEach(t => {
-      const key = t.description.trim() || 'Sem descrição';
-      byDesc.set(key, (byDesc.get(key) || 0) + t.amount);
+      const key = (t.category || 'Geral').trim() || 'Geral';
+      spentByCategory.set(key, (spentByCategory.get(key) || 0) + t.amount);
     });
 
-  const top = Array.from(byDesc.entries())
-    .map(([description, total]) => ({ description, total }))
-    .sort((a, b) => b.total - a.total)
+  const budgetByCategory = new Map();
+  state.budgets.forEach(b => {
+    const key = (b.category || 'Geral').trim() || 'Geral';
+    budgetByCategory.set(key, Number(b.limit || 0));
+  });
+
+  const categories = Array.from(new Set([
+    ...Array.from(spentByCategory.keys()),
+    ...Array.from(budgetByCategory.keys()),
+  ]));
+
+  const rows = categories
+    .map((category) => ({
+      category,
+      planned: budgetByCategory.get(category) || 0,
+      actual: spentByCategory.get(category) || 0,
+    }))
+    .filter(r => r.planned > 0 || r.actual > 0)
+    .sort((a, b) => Math.max(b.planned, b.actual) - Math.max(a.planned, a.actual))
     .slice(0, 5);
 
   const ctx = canvas.getContext('2d');
@@ -312,42 +328,61 @@ function renderTopExpenses() {
   ctx.fillStyle = '#131b2c';
   ctx.fillRect(0, 0, w, h);
 
-  if (!top.length) {
+  if (!rows.length) {
     ctx.fillStyle = '#9fb0d0';
     ctx.font = '600 14px Manrope';
-    ctx.fillText('Sem gastos no mês atual para exibir.', 22, 34);
-    explain.textContent = 'Adicione saídas no mês para ver o ranking dos maiores gastos.';
+    ctx.fillText('Sem dados de categorias no mês atual.', 22, 34);
+    explain.textContent = 'Crie orçamentos e registre saídas para ver o comparativo por categoria.';
     return;
   }
 
-  const max = Math.max(...top.map(i => i.total), 1);
-  const left = 220;
-  const right = 18;
+  const max = Math.max(...rows.map(i => Math.max(i.planned, i.actual)), 1);
+  const left = 170;
+  const right = 26;
   const barArea = w - left - right;
-  const rowH = 38;
+  const rowH = 46;
   const startY = 26;
 
-  top.forEach((item, idx) => {
+  rows.forEach((item, idx) => {
     const y = startY + idx * rowH;
-    const barW = (item.total / max) * barArea;
-    const label = item.description.length > 26 ? `${item.description.slice(0, 26)}...` : item.description;
+    const plannedW = (item.planned / max) * barArea;
+    const actualW = (item.actual / max) * barArea;
+    const label = item.category.length > 18 ? `${item.category.slice(0, 18)}...` : item.category;
 
-    ctx.fillStyle = '#9fb0d0';
-    ctx.font = '600 12px Manrope';
-    ctx.fillText(label, 18, y + 16);
-
-    ctx.fillStyle = '#1f2f4d';
-    ctx.fillRect(left, y + 4, barArea, 16);
-    ctx.fillStyle = '#ef4444';
-    ctx.fillRect(left, y + 4, barW, 16);
-
-    ctx.fillStyle = '#f8fafc';
+    ctx.fillStyle = '#cbd5e1';
     ctx.font = '700 12px Manrope';
-    ctx.fillText(money.format(item.total), left + Math.min(barW + 8, barArea - 90), y + 16);
+    ctx.fillText(label, 16, y + 22);
+
+    ctx.fillStyle = '#23324f';
+    ctx.fillRect(left, y + 3, barArea, 12);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(left, y + 3, plannedW, 12);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '600 11px Manrope';
+    ctx.fillText(money.format(item.planned), left + Math.min(plannedW + 8, barArea - 88), y + 13);
+
+    ctx.fillStyle = '#23324f';
+    ctx.fillRect(left, y + 19, barArea, 12);
+    ctx.fillStyle = '#1d4ed8';
+    ctx.fillRect(left, y + 19, actualW, 12);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText(money.format(item.actual), left + Math.min(actualW + 8, barArea - 88), y + 29);
   });
 
-  const totalTop = top.reduce((a, i) => a + i.total, 0);
-  explain.textContent = `Ranking por descrição (saídas de ${m}). Top 5 somam ${money.format(totalTop)}.`;
+  const legendY = startY + rows.length * rowH + 10;
+  ctx.fillStyle = '#f59e0b';
+  ctx.fillRect(16, legendY, 12, 8);
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '600 11px Manrope';
+  ctx.fillText('Orçado', 32, legendY + 8);
+  ctx.fillStyle = '#1d4ed8';
+  ctx.fillRect(92, legendY, 12, 8);
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillText('Realizado', 108, legendY + 8);
+
+  const totalPlanned = rows.reduce((a, i) => a + i.planned, 0);
+  const totalActual = rows.reduce((a, i) => a + i.actual, 0);
+  explain.textContent = `Mês ${m}: Orçado ${money.format(totalPlanned)} vs Realizado ${money.format(totalActual)} (Top 5 categorias).`;
 }
 
 function renderScore() {
