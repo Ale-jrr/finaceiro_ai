@@ -478,15 +478,14 @@ function drawChart() {
   ctx.clearRect(0, 0, c.width, c.height);
 
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  const anchor = parseIsoLocal(todayIso());
-  anchor.setDate(1);
+  const currentYear = Number(todayIso().slice(0, 4));
   const buckets = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  for (let m = 0; m < 12; m++) {
+    const d = new Date(currentYear, m, 1);
+    const key = `${currentYear}-${String(m + 1).padStart(2, '0')}`;
     buckets.push({
       key,
-      short: `${monthNames[d.getMonth()]}/${String(d.getFullYear()).slice(-2)}`,
+      short: monthNames[d.getMonth()],
       entrada: 0,
       saida: 0,
     });
