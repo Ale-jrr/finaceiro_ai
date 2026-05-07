@@ -9,135 +9,20 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg-1:#060d1f;
-      --bg-2:#0b1733;
-      --card:#1b263f;
-      --line:rgba(170,188,220,.26);
-      --text:#e8efff;
-      --muted:#9fb0d0;
-      --accent-a:#3f7ee8;
-      --accent-b:#2fc3de;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      min-height:100vh;
-      display:grid;
-      place-items:center;
-      background:
-        radial-gradient(1200px 500px at 70% 100%, #0b2b66 0%, transparent 60%),
-        linear-gradient(140deg,var(--bg-1),var(--bg-2));
-      font-family:Manrope,sans-serif;
-      color:var(--text);
-      padding:20px;
-    }
-    .shell{
-      width:min(980px,100%);
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      border:1px solid var(--line);
-      border-radius:24px;
-      overflow:hidden;
-      background:rgba(8,16,34,.72);
-      box-shadow:0 20px 60px rgba(0,0,0,.45);
-      backdrop-filter:blur(12px);
-    }
-    .hero{
-      padding:42px 38px;
-      background:
-        linear-gradient(160deg,rgba(24,43,84,.72),rgba(10,20,42,.72)),
-        radial-gradient(300px 140px at 80% 10%,rgba(68,149,255,.25),transparent 70%);
-      border-right:1px solid var(--line);
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      gap:24px;
-    }
-    .brand{
-      font-family:'Space Grotesk',sans-serif;
-      font-size:36px;
-      margin:0;
-      line-height:1.1;
-    }
-    .hero p{margin:10px 0 0;color:var(--muted);font-size:15px;max-width:34ch}
-    .points{display:grid;gap:10px;margin:0;padding:0;list-style:none}
-    .points li{
-      border:1px solid rgba(166,188,230,.22);
-      background:rgba(12,24,49,.58);
-      border-radius:12px;
-      padding:10px 12px;
-      color:#c8d5ef;
-      font-size:14px;
-      font-weight:600;
-    }
-    .card{
-      padding:34px;
-      display:flex;
-      align-items:center;
-    }
-    form{width:100%}
-    h1{
-      font-family:'Space Grotesk',sans-serif;
-      margin:0 0 8px;
-      font-size:44px;
-      line-height:1;
-    }
-    .subtitle{margin:0 0 18px;color:var(--muted)}
-    input,button{
-      width:100%;
-      padding:13px 14px;
-      border-radius:12px;
-      border:1px solid rgba(172,192,226,.22);
-      background:#0d1730;
-      color:var(--text);
-      margin-bottom:10px;
-      font:600 16px Manrope,sans-serif;
-    }
-    input:focus{
-      outline:none;
-      border-color:#55a8ff;
-      box-shadow:0 0 0 2px rgba(85,168,255,.22);
-    }
-    button{
-      border:none;
-      background:linear-gradient(120deg,var(--accent-a),var(--accent-b));
-      font-weight:800;
-      cursor:pointer;
-    }
-    .ghost{
-      background:transparent;
-      border:1px solid rgba(166,188,230,.25);
-      color:#dbe7ff;
-      font-weight:700;
-    }
+    body{margin:0;min-height:100vh;display:grid;place-items:center;background:linear-gradient(160deg,#0b1220,#0f1b33);font-family:Manrope,sans-serif;color:#e8efff}
+    .card{width:min(440px,92vw);padding:26px;border-radius:18px;background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12)}
+    h1{font-family:'Space Grotesk',sans-serif;margin:0 0 8px} p{margin:0 0 16px;color:#9fb0d0}
+    input,button{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0d1730;color:#e8efff;margin-bottom:10px}
+    button{border:none;background:linear-gradient(120deg,#3b82f6,#22d3ee);font-weight:800;cursor:pointer}
+    .ghost{background:transparent;border:1px solid rgba(255,255,255,.2);font-weight:600}
     .hidden{display:none}
-    @media (max-width:860px){
-      .shell{grid-template-columns:1fr}
-      .hero{border-right:0;border-bottom:1px solid var(--line);padding:26px 22px}
-      .brand{font-size:28px}
-      h1{font-size:34px}
-      .card{padding:22px}
-    }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <aside class="hero">
-      <div>
-        <h2 class="brand">Zentro Finance</h2>
-        <p>Organize entradas, saídas e metas em um painel simples, bonito e focado no que realmente importa.</p>
-      </div>
-      <ul class="points">
-        <li>Resumo financeiro claro por mês</li>
-        <li>Histórico e calendário com edição rápida</li>
-        <li>Sincronização e acesso multi-dispositivo</li>
-      </ul>
-    </aside>
-    <div class="card">
+  <div class="card">
     <form id="loginForm">
-      <h1>Olá</h1>
-      <p class="subtitle">Entre para acessar seu painel.</p>
+      <h1>Zentro Finance</h1>
+      <p>Entre para acessar seu painel.</p>
       <input id="email" type="email" placeholder="E-mail" required />
       <input id="password" type="password" placeholder="Senha" required />
       <button type="submit">Entrar</button>
@@ -145,15 +30,14 @@
     </form>
 
     <form id="registerForm" class="hidden">
-      <h1>Nova Conta</h1>
-      <p class="subtitle">Crie um novo acesso para sua plataforma.</p>
+      <h1>Criar Conta</h1>
+      <p>Crie um novo acesso para sua plataforma.</p>
       <input id="registerName" type="text" placeholder="Nome" required />
       <input id="registerEmail" type="email" placeholder="E-mail" required />
       <input id="registerPassword" type="password" placeholder="Senha" minlength="6" required />
       <button type="submit">Salvar conta</button>
       <button id="backToLogin" class="ghost" type="button">Voltar ao login</button>
     </form>
-    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
