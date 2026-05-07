@@ -257,6 +257,8 @@ function detectRecurringExpenses() {
 }
 
 function renderBudgetAlerts() {
+  const el = $('budgetAlertText');
+  if (!el) return;
   const m = monthKey(todayIso());
   const alerts = [];
   state.budgets.forEach(b => {
@@ -265,12 +267,14 @@ function renderBudgetAlerts() {
       .reduce((a, t) => a + t.amount, 0);
     if (spent > b.limit) alerts.push(`${b.category}: ${money.format(spent)} de ${money.format(b.limit)}`);
   });
-  $('budgetAlertText').textContent = alerts.length
+  el.textContent = alerts.length
     ? `Orçamento estourado em: ${alerts.join(' | ')}`
     : 'Sem alertas de orçamento no momento.';
 }
 
 function renderProjection() {
+  const el = $('monthProjectionText');
+  if (!el) return;
   const now = new Date();
   const key = monthKey(todayIso());
   const monthData = summarizeMonth(key);
@@ -279,7 +283,71 @@ function renderProjection() {
   const projectedEntradas = passed ? (monthData.entradas / passed) * daysInMonth : 0;
   const projectedSaidas = passed ? (monthData.saidas / passed) * daysInMonth : 0;
   const projectedSaldo = projectedEntradas - projectedSaidas;
-  $('monthProjectionText').textContent = `Projeção até fim do mês: entradas ${money.format(projectedEntradas)}, saídas ${money.format(projectedSaidas)}, saldo ${money.format(projectedSaldo)}.`;
+  el.textContent = `Projeção até fim do mês: entradas ${money.format(projectedEntradas)}, saídas ${money.format(projectedSaidas)}, saldo ${money.format(projectedSaldo)}.`;
+}
+
+function renderTopExpenses() {
+  const canvas = $('topExpensesChart');
+  const explain = $('topExpensesExplain');
+  if (!canvas || !explain) return;
+
+  const m = monthKey(todayIso());
+  const byDesc = new Map();
+  state.txs
+    .filter(t => t.type === 'saida' && monthKey(t.date) === m)
+    .forEach(t => {
+      const key = t.description.trim() || 'Sem descrição';
+      byDesc.set(key, (byDesc.get(key) || 0) + t.amount);
+    });
+
+  const top = Array.from(byDesc.entries())
+    .map(([description, total]) => ({ description, total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#131b2c';
+  ctx.fillRect(0, 0, w, h);
+
+  if (!top.length) {
+    ctx.fillStyle = '#9fb0d0';
+    ctx.font = '600 14px Manrope';
+    ctx.fillText('Sem gastos no mês atual para exibir.', 22, 34);
+    explain.textContent = 'Adicione saídas no mês para ver o ranking dos maiores gastos.';
+    return;
+  }
+
+  const max = Math.max(...top.map(i => i.total), 1);
+  const left = 220;
+  const right = 18;
+  const barArea = w - left - right;
+  const rowH = 38;
+  const startY = 26;
+
+  top.forEach((item, idx) => {
+    const y = startY + idx * rowH;
+    const barW = (item.total / max) * barArea;
+    const label = item.description.length > 26 ? `${item.description.slice(0, 26)}...` : item.description;
+
+    ctx.fillStyle = '#9fb0d0';
+    ctx.font = '600 12px Manrope';
+    ctx.fillText(label, 18, y + 16);
+
+    ctx.fillStyle = '#1f2f4d';
+    ctx.fillRect(left, y + 4, barArea, 16);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(left, y + 4, barW, 16);
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = '700 12px Manrope';
+    ctx.fillText(money.format(item.total), left + Math.min(barW + 8, barArea - 90), y + 16);
+  });
+
+  const totalTop = top.reduce((a, i) => a + i.total, 0);
+  explain.textContent = `Ranking por descrição (saídas de ${m}). Top 5 somam ${money.format(totalTop)}.`;
 }
 
 function renderScore() {
@@ -576,6 +644,7 @@ function renderAll() {
   renderCompare();
   renderBudgetAlerts();
   renderProjection();
+  renderTopExpenses();
   renderScore();
   renderClosureSummary();
   renderRecurring();
