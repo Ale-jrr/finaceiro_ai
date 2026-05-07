@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   const REQUIRED_KEYS = [
     'pulse_txs',
     'pulse_goals',
@@ -17,7 +17,6 @@
   const userEmail = (localStorage.getItem('pulse_user') || '').toLowerCase();
   const isAuthed = localStorage.getItem('pulse_auth') === '1';
   const hasConfig = Boolean(window.SUPABASE_URL && window.SUPABASE_ANON_KEY && window.supabase);
-
   if (!isAuthed || !userEmail || !hasConfig) return;
 
   const { createClient } = window.supabase;
@@ -25,17 +24,7 @@
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
   }));
 
-  const SNAPSHOT_HASH_KEY = 'pulse_remote_snapshot_hash';
   const REMOTE_UPDATED_AT_KEY = 'pulse_remote_updated_at';
-
-  const readPayload = () => {
-    const payload = {};
-    for (const k of REQUIRED_KEYS) {
-      const v = localStorage.getItem(k);
-      if (v !== null) payload[k] = v;
-    }
-    return payload;
-  };
 
   const writePayload = (payload) => {
     if (!payload || typeof payload !== 'object') return;
@@ -46,73 +35,24 @@
     }
   };
 
-  const hash = (obj) => JSON.stringify(obj);
-  const isEmptyPayload = (payload) => !payload || Object.keys(payload).length === 0;
-
   const pullFromSupabase = async () => {
     const { data, error } = await client
       .from('app_user_state')
       .select('payload, updated_at')
       .eq('user_email', userEmail)
       .maybeSingle();
-
     if (error || !data || !data.payload) return;
 
     const remoteUpdated = new Date(data.updated_at || 0).getTime();
     const localUpdated = new Date(localStorage.getItem(REMOTE_UPDATED_AT_KEY) || 0).getTime();
-
     if (remoteUpdated > localUpdated) {
       writePayload(data.payload);
       localStorage.setItem(REMOTE_UPDATED_AT_KEY, data.updated_at || new Date().toISOString());
-      localStorage.setItem(SNAPSHOT_HASH_KEY, hash(readPayload()));
       location.reload();
     }
   };
 
-  const pushToSupabase = async () => {
-    const payload = readPayload();
-    const payloadHash = hash(payload);
-    const lastHash = localStorage.getItem(SNAPSHOT_HASH_KEY);
-
-    if (payloadHash === lastHash) return;
-
-    const row = {
-      user_email: userEmail,
-      payload,
-      updated_at: new Date().toISOString()
-    };
-
-    const { error } = await client
-      .from('app_user_state')
-      .upsert(row, { onConflict: 'user_email' });
-
-    if (!error) {
-      localStorage.setItem(SNAPSHOT_HASH_KEY, payloadHash);
-      localStorage.setItem(REMOTE_UPDATED_AT_KEY, row.updated_at);
-    }
-  };
-
-  let inFlight = false;
-  let bootstrapDone = false;
-  const safePush = async () => {
-    if (!bootstrapDone) return;
-    if (inFlight) return;
-    inFlight = true;
-    try { await pushToSupabase(); } finally { inFlight = false; }
-  };
-
-  // Expose manual sync trigger for immediate persistence after local save.
-  window.pulseSyncNow = safePush;
-  window.addEventListener('pulse:state-changed', safePush);
-
-  pullFromSupabase().finally(() => {
-    bootstrapDone = true;
-    const hasRemoteMarker = Boolean(localStorage.getItem(REMOTE_UPDATED_AT_KEY));
-    const localPayload = readPayload();
-    // Prevent first-write empty overwrite after cache clear.
-    if (!(isEmptyPayload(localPayload) && !hasRemoteMarker)) {
-      safePush();
-    }
-    setInterval(safePush, 4000);
-  });
+  pullFromSupabase();
+  setInterval(pullFromSupabase, 8000);
 })();
+
