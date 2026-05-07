@@ -617,7 +617,19 @@ $('txForm').onsubmit = (e) => {
 };
 $('goalForm').onsubmit = (e) => { e.preventDefault(); const name = $('goalName').value.trim(); const target = Number($('goalTarget').value); const current = Number($('goalCurrent').value); if (!name || target <= 0 || current < 0) return; state.goals.push({ id: crypto.randomUUID(), name, target, current }); renderAll(); e.target.reset(); $('goalCurrent').value = '0'; };
 $('budgetForm').onsubmit = (e) => { e.preventDefault(); const category = $('budgetCategory').value.trim(); const limit = Number($('budgetLimit').value); if (!category || limit <= 0) return; const found = state.budgets.find(b => b.category.toLowerCase() === category.toLowerCase()); if (found) found.limit = limit; else state.budgets.push({ id: crypto.randomUUID(), category, limit }); renderAll(); e.target.reset(); };
-$('autoGoal').onclick = () => { const month = monthKey(todayIso()); const entradas = state.txs.filter(t => t.type === 'entrada' && monthKey(t.date) === month).reduce((a, t) => a + t.amount, 0); const saidas = state.txs.filter(t => t.type === 'saida' && monthKey(t.date) === month).reduce((a, t) => a + t.amount, 0); const target = Math.max(200, (entradas - saidas) * 0.3 || 300); state.goals.push({ id: crypto.randomUUID(), name: `Reserva ${month}`, target: Number(target.toFixed(2)), current: 0 }); renderAll(); };
+$('autoGoal').onclick = () => {
+  const month = monthKey(todayIso());
+  const entradas = state.txs.filter(t => t.type === 'entrada' && monthKey(t.date) === month).reduce((a, t) => a + t.amount, 0);
+  const saidas = state.txs.filter(t => t.type === 'saida' && monthKey(t.date) === month).reduce((a, t) => a + t.amount, 0);
+  const base = entradas - saidas;
+  const target = Number((base > 0 ? base * 0.3 : 0).toFixed(2));
+  if (target <= 0) {
+    alert('Sem base positiva no mês para gerar meta automática.');
+    return;
+  }
+  state.goals.push({ id: crypto.randomUUID(), name: `Reserva ${month}`, target, current: 0 });
+  renderAll();
+};
 if ($('userForm')) $('userForm').onsubmit = (e) => { e.preventDefault(); const me = currentAccount(); if (!me || !me.isAdmin) return; const name = $('userName').value.trim(); const email = $('userEmail').value.trim().toLowerCase(); const password = $('userPassword').value; if (!name || !email || password.length < 6) return; if (state.accounts.some(a => a.email === email)) { alert('Já existe usuário com esse e-mail.'); return; } const newAcc = { id: crypto.randomUUID(), name, email, password, isAdmin: false, isBlocked: false, createdAt: new Date().toISOString() }; state.accounts.push(newAcc); upsertAccountToSupabase(newAcc); e.target.reset(); renderAll(); };
 ['searchTx', 'filterType', 'filterCategory', 'filterFrom', 'filterTo'].forEach(id => $(id).addEventListener('input', renderTable));
 $('clearAll').onclick = () => { if (confirm('Limpar todas as transações?')) { state.txs = []; state.xp = 0; state.streak = 0; renderAll(); } };
