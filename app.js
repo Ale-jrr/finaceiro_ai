@@ -1,4 +1,11 @@
 ﻿const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const pad2 = (n) => String(n).padStart(2, '0');
+const dateToIsoLocal = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const parseIsoLocal = (iso) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return new Date(iso);
+  const [y, m, day] = String(iso).split('-').map(Number);
+  return new Date(y, m - 1, day);
+};
 function requireAuth() {
   if (localStorage.getItem('pulse_auth') !== '1') {
     localStorage.removeItem('pulse_user');
@@ -31,8 +38,11 @@ async function deleteAccountFromSupabase(email) {
   if (!sb) return;
   await sb.from('app_users').delete().eq('email', email);
 }
-const todayIso = () => new Date().toISOString().slice(0, 10);
-const monthKey = (d) => new Date(d).toISOString().slice(0, 7);
+const todayIso = () => dateToIsoLocal(new Date());
+const monthKey = (d) => {
+  if (typeof d === 'string' && /^\d{4}-\d{2}(-\d{2})?$/.test(d)) return d.slice(0, 7);
+  return dateToIsoLocal(new Date(d)).slice(0, 7);
+};
 const setRailCollapsed = (collapsed) => {
   const rail = $('leftRail');
   const btn = $('railToggle');
@@ -116,13 +126,13 @@ function prevMonth(key) {
   const [y, m] = key.split('-').map(Number);
   const d = new Date(y, m - 1, 1);
   d.setMonth(d.getMonth() - 1);
-  return d.toISOString().slice(0, 7);
+  return dateToIsoLocal(d).slice(0, 7);
 }
 
 function nextMonthDate(isoDate, addMonths) {
-  const d = new Date(isoDate);
+  const d = parseIsoLocal(isoDate);
   d.setMonth(d.getMonth() + addMonths);
-  return d.toISOString().slice(0, 10);
+  return dateToIsoLocal(d);
 }
 
 function summarizeMonth(key) {
@@ -266,7 +276,7 @@ function drawChart() {
   const saldoAcc = [];
   let acc = 0;
   for (let day = 1; day <= daysInMonth; day++) {
-    const dtx = state.txs.filter(t => new Date(t.date).getDate() === day && monthKey(t.date) === currentMonth);
+    const dtx = state.txs.filter(t => parseIsoLocal(t.date).getDate() === day && monthKey(t.date) === currentMonth);
     const ent = dtx.filter(t => t.type === 'entrada').reduce((a, t) => a + t.amount, 0);
     const sai = dtx.filter(t => t.type === 'saida').reduce((a, t) => a + t.amount, 0);
     acc += ent - sai;
@@ -344,7 +354,7 @@ function renderTable() {
   body.innerHTML = '';
   visible.forEach(tx => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${tx.description}<br><small>${tx.category}${tx.installment ? ` • ${tx.installment}` : ''}</small></td><td>${new Date(tx.date).toLocaleDateString('pt-BR')}</td><td style="font-weight:700;color:${tx.type === 'saida' ? '#fb7185' : '#34d399'}">${tx.type === 'saida' ? '-' : '+'} ${money.format(tx.amount)}</td><td><button class="ghost small del" data-id="${tx.id}" title="Excluir">X</button></td>`;
+    tr.innerHTML = `<td>${tx.description}<br><small>${tx.category}${tx.installment ? ` • ${tx.installment}` : ''}</small></td><td>${parseIsoLocal(tx.date).toLocaleDateString('pt-BR')}</td><td style="font-weight:700;color:${tx.type === 'saida' ? '#fb7185' : '#34d399'}">${tx.type === 'saida' ? '-' : '+'} ${money.format(tx.amount)}</td><td><button class="ghost small del" data-id="${tx.id}" title="Excluir">X</button></td>`;
     body.appendChild(tr);
   });
   moreWrap.classList.toggle('hidden', all.length <= 3);
@@ -531,7 +541,7 @@ $('txForm').onsubmit = (e) => {
     const baseCents = Math.floor(totalCents / installments);
     const remainder = totalCents % installments;
     for (let i = 0; i < installments; i++) {
-      const d = new Date();
+      const d = parseIsoLocal(todayIso());
       d.setMonth(d.getMonth() + i);
       const partCents = baseCents + (i < remainder ? 1 : 0);
       const part = partCents / 100;
@@ -541,7 +551,7 @@ $('txForm').onsubmit = (e) => {
         description,
         amount: part,
         category,
-        date: d.toISOString().slice(0, 10),
+        date: dateToIsoLocal(d),
         installment: `${i + 1}/${installments}`,
       });
     }
@@ -617,5 +627,6 @@ document.addEventListener('click', (e) => {
   localStorage.removeItem('pulse_user');
   window.location.replace('login.html');
 });
+
 
 
