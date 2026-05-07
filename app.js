@@ -68,6 +68,8 @@ async function pushStateToSupabaseNow() {
       payload,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_email' });
+    const nowIso = new Date().toISOString();
+    localStorage.setItem('pulse_remote_updated_at', nowIso);
   } finally {
     persistInFlight = false;
   }
