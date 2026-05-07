@@ -38,6 +38,42 @@ async function deleteAccountFromSupabase(email) {
   if (!sb) return;
   await sb.from('app_users').delete().eq('email', email);
 }
+let persistTimer = null;
+let persistInFlight = false;
+async function pushStateToSupabaseNow() {
+  if (!sb) return;
+  const userEmail = (localStorage.getItem('pulse_user') || '').toLowerCase();
+  if (!userEmail || localStorage.getItem('pulse_auth') !== '1') return;
+  if (persistInFlight) return;
+  persistInFlight = true;
+  try {
+    const payload = {
+      pulse_txs: localStorage.getItem('pulse_txs') || '[]',
+      pulse_goals: localStorage.getItem('pulse_goals') || '[]',
+      pulse_budgets: localStorage.getItem('pulse_budgets') || '[]',
+      pulse_ach: localStorage.getItem('pulse_ach') || '[]',
+      pulse_xp: localStorage.getItem('pulse_xp') || '0',
+      pulse_streak: localStorage.getItem('pulse_streak') || '0',
+      pulse_compare_month: localStorage.getItem('pulse_compare_month') || monthKey(todayIso()),
+      pulse_calendar_month: localStorage.getItem('pulse_calendar_month') || monthKey(todayIso()),
+      pulse_closure_month: localStorage.getItem('pulse_closure_month') || monthKey(todayIso()),
+      pulse_month_closures: localStorage.getItem('pulse_month_closures') || '{}',
+      pulse_ignored_recurring: localStorage.getItem('pulse_ignored_recurring') || '[]',
+      pulse_left_rail_collapsed: localStorage.getItem('pulse_left_rail_collapsed') || '0'
+    };
+    await sb.from('app_user_state').upsert({
+      user_email: userEmail,
+      payload,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_email' });
+  } finally {
+    persistInFlight = false;
+  }
+}
+function scheduleStatePersist() {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => { pushStateToSupabaseNow(); }, 250);
+}
 const REMOTE_KEYS = [
   'pulse_txs',
   'pulse_goals',
@@ -154,6 +190,7 @@ function save() {
   if (typeof window.pulseSyncNow === 'function') {
     window.pulseSyncNow();
   }
+  scheduleStatePersist();
 }
 
 function summary() {
