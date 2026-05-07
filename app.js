@@ -514,6 +514,8 @@ function drawChart() {
   const plotH = c.height - pTop - pBottom;
   const maxVal = Math.max(1, ...entradas, ...saidas);
   const stepX = plotW / 11;
+  const yFor = (v) => pTop + (1 - v / maxVal) * plotH;
+  const xFor = (i) => pLeft + i * stepX;
   chartState.months = buckets.map((b, i) => ({
     index: i,
     name: b.short,
@@ -523,9 +525,6 @@ function drawChart() {
     saldo: entradas[i] - saidas[i]
   }));
   chartState.pointsX = buckets.map((_, i) => xFor(i));
-
-  const yFor = (v) => pTop + (1 - v / maxVal) * plotH;
-  const xFor = (i) => pLeft + i * stepX;
 
   ctx.strokeStyle = '#334155';
   ctx.lineWidth = 1;
