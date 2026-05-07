@@ -38,6 +38,53 @@ async function deleteAccountFromSupabase(email) {
   if (!sb) return;
   await sb.from('app_users').delete().eq('email', email);
 }
+const REMOTE_KEYS = [
+  'pulse_txs',
+  'pulse_goals',
+  'pulse_budgets',
+  'pulse_ach',
+  'pulse_xp',
+  'pulse_streak',
+  'pulse_compare_month',
+  'pulse_calendar_month',
+  'pulse_closure_month',
+  'pulse_month_closures',
+  'pulse_ignored_recurring',
+];
+
+function applyRemotePayloadToState(payload) {
+  if (!payload || typeof payload !== 'object') return;
+  if (payload.pulse_txs) state.txs = JSON.parse(payload.pulse_txs || '[]');
+  if (payload.pulse_goals) state.goals = JSON.parse(payload.pulse_goals || '[]');
+  if (payload.pulse_budgets) state.budgets = JSON.parse(payload.pulse_budgets || '[]');
+  if (payload.pulse_ach) state.achievements = JSON.parse(payload.pulse_ach || '[]');
+  if (payload.pulse_xp !== undefined) state.xp = Number(payload.pulse_xp || 0);
+  if (payload.pulse_streak !== undefined) state.streak = Number(payload.pulse_streak || 0);
+  if (payload.pulse_compare_month) state.compareMonth = payload.pulse_compare_month;
+  if (payload.pulse_calendar_month) state.calendarMonth = payload.pulse_calendar_month;
+  if (payload.pulse_closure_month) state.closureMonth = payload.pulse_closure_month;
+  if (payload.pulse_month_closures) state.closures = JSON.parse(payload.pulse_month_closures || '{}');
+  if (payload.pulse_ignored_recurring) state.ignoredRecurring = JSON.parse(payload.pulse_ignored_recurring || '[]');
+}
+
+async function hydrateStateFromSupabase() {
+  if (!sb) return;
+  const userEmail = (localStorage.getItem('pulse_user') || '').toLowerCase();
+  if (!userEmail) return;
+  const { data } = await sb
+    .from('app_user_state')
+    .select('payload')
+    .eq('user_email', userEmail)
+    .maybeSingle();
+  if (!data || !data.payload) return;
+  const payload = data.payload;
+  for (const k of REMOTE_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(payload, k)) {
+      localStorage.setItem(k, String(payload[k]));
+    }
+  }
+  applyRemotePayloadToState(payload);
+}
 const todayIso = () => dateToIsoLocal(new Date());
 const monthKey = (d) => {
   if (typeof d === 'string' && /^\d{4}-\d{2}(-\d{2})?$/.test(d)) return d.slice(0, 7);
@@ -598,14 +645,17 @@ document.querySelectorAll('.rail-btn').forEach(btn => btn.onclick = () => {
   if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
-ensureAccounts();
-syncAccountsFromSupabase().then(() => renderAll());
-const railState = localStorage.getItem('pulse_left_rail_collapsed');
-setRailCollapsed(railState === null ? false : railState === '1');
-setPage('dashboard');
-updateInstallmentUI();
-
-renderAll();
+async function initApp() {
+  ensureAccounts();
+  await syncAccountsFromSupabase();
+  await hydrateStateFromSupabase();
+  const railState = localStorage.getItem('pulse_left_rail_collapsed');
+  setRailCollapsed(railState === null ? false : railState === '1');
+  setPage('dashboard');
+  updateInstallmentUI();
+  renderAll();
+}
+initApp();
 
 
 
