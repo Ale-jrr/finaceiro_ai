@@ -64,13 +64,12 @@ async function pushStateToSupabaseNow() {
       pulse_ignored_recurring: localStorage.getItem('pulse_ignored_recurring') || '[]',
       pulse_left_rail_collapsed: localStorage.getItem('pulse_left_rail_collapsed') || '0'
     };
-    await sb.from('app_user_state').upsert({
+    const { data } = await sb.from('app_user_state').upsert({
       user_email: userEmail,
       payload,
       updated_at: new Date().toISOString()
-    }, { onConflict: 'user_email' });
-    const nowIso = new Date().toISOString();
-    localStorage.setItem('pulse_remote_updated_at', nowIso);
+    }, { onConflict: 'user_email' }).select('updated_at').maybeSingle();
+    localStorage.setItem('pulse_remote_updated_at', (data && data.updated_at) || new Date().toISOString());
   } finally {
     persistInFlight = false;
   }
@@ -944,6 +943,9 @@ async function initApp() {
   renderAll();
 }
 initApp();
+window.addEventListener('pulse:remote-updated', () => {
+  hydrateStateFromSupabase().then(() => renderAll());
+});
 
 
 

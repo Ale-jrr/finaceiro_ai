@@ -48,11 +48,10 @@
     if (remoteUpdated > localUpdated) {
       writePayload(data.payload);
       localStorage.setItem(REMOTE_UPDATED_AT_KEY, data.updated_at || new Date().toISOString());
-      location.reload();
+      window.dispatchEvent(new Event('pulse:remote-updated'));
     }
   };
 
   pullFromSupabase();
   setInterval(pullFromSupabase, 8000);
 })();
-
