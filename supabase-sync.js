@@ -45,6 +45,7 @@
   };
 
   const hash = (obj) => JSON.stringify(obj);
+  const isEmptyPayload = (payload) => !payload || Object.keys(payload).length === 0;
 
   const pullFromSupabase = async () => {
     const { data, error } = await client
@@ -90,7 +91,9 @@
   };
 
   let inFlight = false;
+  let bootstrapDone = false;
   const safePush = async () => {
+    if (!bootstrapDone) return;
     if (inFlight) return;
     inFlight = true;
     try { await pushToSupabase(); } finally { inFlight = false; }
@@ -101,7 +104,13 @@
   window.addEventListener('pulse:state-changed', safePush);
 
   pullFromSupabase().finally(() => {
-    safePush();
+    bootstrapDone = true;
+    const hasRemoteMarker = Boolean(localStorage.getItem(REMOTE_UPDATED_AT_KEY));
+    const localPayload = readPayload();
+    // Prevent first-write empty overwrite after cache clear.
+    if (!(isEmptyPayload(localPayload) && !hasRemoteMarker)) {
+      safePush();
+    }
     setInterval(safePush, 4000);
   });
 })();
